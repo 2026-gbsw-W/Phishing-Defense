@@ -35,7 +35,8 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(HttpStatus.CONFLICT.value(), "DUPLICATE_RESOURCE", "이미 존재하는 리소스입니다."));
     }
 
-    @ExceptionHandler({InvalidCredentialsException.class, InvalidCurrentPasswordException.class, BadCredentialsException.class})
+    @ExceptionHandler({InvalidCredentialsException.class, InvalidCurrentPasswordException.class,
+            InvalidRefreshTokenException.class, BadCredentialsException.class})
     public ResponseEntity<ErrorResponse> handleInvalidCredentials(RuntimeException e) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ErrorResponse.of(HttpStatus.UNAUTHORIZED.value(), "INVALID_CREDENTIALS", e.getMessage()));
@@ -54,6 +55,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleBadRequest(RuntimeException e) {
         return ResponseEntity.badRequest()
                 .body(ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), "INVALID_INPUT", e.getMessage()));
+    }
+
+    @ExceptionHandler(ScenarioRecordAccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(ScenarioRecordAccessDeniedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ErrorResponse.of(HttpStatus.FORBIDDEN.value(), "ACCESS_DENIED", e.getMessage()));
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
