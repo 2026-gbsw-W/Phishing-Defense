@@ -9,6 +9,7 @@ import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -34,4 +35,19 @@ public class Attendance {
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Builder
+    private Attendance(Long userId, LocalDate checkedInAt, Integer consecutiveDays) {
+        this.userId = userId;
+        this.checkedInAt = checkedInAt;
+        this.consecutiveDays = consecutiveDays;
+    }
+
+    public static Attendance checkIn(Long userId, LocalDate checkedInAt, Integer consecutiveDays) {
+        return Attendance.builder()
+                .userId(userId)
+                .checkedInAt(checkedInAt)
+                .consecutiveDays(consecutiveDays)
+                .build();
+    }
 }

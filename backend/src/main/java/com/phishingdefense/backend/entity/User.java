@@ -114,4 +114,9 @@ public class User {
     public void changeProfileImageUrl(String profileImageUrl) {
         this.profileImageUrl = profileImageUrl;
     }
+
+    public void addXp(int amount) {
+        this.currentXp = (this.currentXp == null ? 0 : this.currentXp) + amount;
+        this.totalXp = (this.totalXp == null ? 0 : this.totalXp) + amount;
+    }
 }

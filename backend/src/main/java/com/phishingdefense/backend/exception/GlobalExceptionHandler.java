@@ -52,16 +52,23 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(HttpStatus.NOT_FOUND.value(), "NOT_FOUND", e.getMessage()));
     }
 
-    @ExceptionHandler({MissingCurrentPasswordException.class, InvalidFileException.class})
+    @ExceptionHandler({MissingCurrentPasswordException.class, InvalidFileException.class,
+            ScenarioRecordNotCompletedException.class})
     public ResponseEntity<ErrorResponse> handleBadRequest(RuntimeException e) {
         return ResponseEntity.badRequest()
                 .body(ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), "INVALID_INPUT", e.getMessage()));
     }
 
-    @ExceptionHandler(ScenarioRecordAccessDeniedException.class)
-    public ResponseEntity<ErrorResponse> handleAccessDenied(ScenarioRecordAccessDeniedException e) {
+    @ExceptionHandler({ScenarioRecordAccessDeniedException.class, DailyMissionAccessDeniedException.class})
+    public ResponseEntity<ErrorResponse> handleAccessDenied(RuntimeException e) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ErrorResponse.of(HttpStatus.FORBIDDEN.value(), "ACCESS_DENIED", e.getMessage()));
+    }
+
+    @ExceptionHandler(DailyMissionAlreadyCompletedException.class)
+    public ResponseEntity<ErrorResponse> handleAlreadyCompleted(DailyMissionAlreadyCompletedException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of(HttpStatus.CONFLICT.value(), "ALREADY_COMPLETED", e.getMessage()));
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
