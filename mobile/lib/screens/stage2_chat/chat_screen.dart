@@ -75,7 +75,6 @@ class _ChatScreenState extends State<ChatScreen> {
         // 초기 AI 인사는 턴 카운트에 포함하지 않음 (사용자 대화 기준)
         _turnCount = 0;
         _hintAvailable = result.hintAvailable;
-        _evidenceFoundCount += result.extractedEvidence.length;
         _msgs.add(_ChatMsg(text: result.aiResponse, isUser: false, isNew: true));
       });
       _tts.speak(result.aiResponse);
@@ -118,7 +117,6 @@ class _ChatScreenState extends State<ChatScreen> {
         _isAiTyping = false;
         _turnCount = result.turn;
         _hintAvailable = result.hintAvailable;
-        _evidenceFoundCount += result.extractedEvidence.length;
         _msgs.add(
           _ChatMsg(text: result.aiResponse, isUser: false, isNew: true),
         );
@@ -435,7 +433,7 @@ class _EvidenceTray extends StatelessWidget {
           const Icon(Icons.bookmark_rounded, color: AppColors.alarm, size: 16),
           const SizedBox(width: 6),
           Text(
-            '발견된 증거 ($count개)',
+            '저장한 증거 ($count개) — 꾹 눌러서 저장',
             style: Theme.of(
               context,
             ).textTheme.labelSmall?.copyWith(color: AppColors.textSecondary),
