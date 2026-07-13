@@ -6,6 +6,8 @@ import com.phishingdefense.backend.dto.training.AiChatMessageResponse;
 import com.phishingdefense.backend.dto.training.AiChatRequestPayload;
 import com.phishingdefense.backend.dto.training.AiEvidenceRequestPayload;
 import com.phishingdefense.backend.dto.training.AiEvidenceResponse;
+import com.phishingdefense.backend.dto.training.AiHintRequestPayload;
+import com.phishingdefense.backend.dto.training.AiHintResponse;
 import com.phishingdefense.backend.dto.training.VoiceChatResult;
 import com.phishingdefense.backend.exception.AiServerCommunicationException;
 import java.net.URLDecoder;
@@ -83,6 +85,19 @@ public class AiClient {
                     .body(AiEvidenceResponse.class);
         } catch (RestClientException e) {
             throw new AiServerCommunicationException("AI 서버에 증거를 저장하지 못했습니다.", e);
+        }
+    }
+
+    public AiHintResponse getHint(String sessionId) {
+        try {
+            return restClient.post()
+                    .uri("/hint")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new AiHintRequestPayload(sessionId))
+                    .retrieve()
+                    .body(AiHintResponse.class);
+        } catch (RestClientException e) {
+            throw new AiServerCommunicationException("AI 서버로부터 힌트를 받아오지 못했습니다.", e);
         }
     }
 

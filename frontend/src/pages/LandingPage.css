@@ -1,0 +1,1067 @@
+/* LandingPage — ported from the repo-root static index.html marketing
+   page. Shared design-system tokens/resets (:root, body, .mono, .wrap,
+   .hex-bg, h1, h2, .accent, .btn-primary, .btn-ghost) already live in
+   ../index.css and are NOT redefined here — see
+   docs/DESIGN_SYSTEM.md for the source of truth. Only landing-page-
+   specific selectors below. */
+
+/* NAV (docs/DESIGN_SYSTEM.md §5.1) */
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(8, 6, 10, 0.85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+nav .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 72px;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+.logo-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--alarm-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.logo-mark::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--alarm);
+  border-top: none;
+  border-right: none;
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+.nav-links {
+  display: flex;
+  gap: 32px;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+.nav-links a {
+  color: inherit;
+  text-decoration: none;
+}
+.cta-btn {
+  background: var(--text);
+  color: var(--bg);
+  border: none;
+  padding: 11px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+@media (max-width: 720px) {
+  .nav-links {
+    display: none;
+  }
+}
+
+/* entrance reveal — hero-only, above the fold (docs/DESIGN_SYSTEM.md §6.1) */
+.reveal-in {
+  opacity: 0;
+  transform: translateY(16px);
+  animation: heroFadeUp 0.8s cubic-bezier(0.16, 0.8, 0.24, 1) forwards;
+}
+@keyframes heroFadeUp {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.delay-1 {
+  animation-delay: 0.05s;
+}
+.delay-2 {
+  animation-delay: 0.17s;
+}
+.delay-3 {
+  animation-delay: 0.29s;
+}
+.delay-4 {
+  animation-delay: 0.41s;
+}
+.delay-5 {
+  animation-delay: 0.53s;
+}
+
+/* HERO — centered, oversized device (docs/DESIGN_SYSTEM.md §5.11) */
+.hero {
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  padding: 56px 0 100px;
+}
+.hero-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0;
+  animation: heroFadeIn 1s ease forwards;
+  animation-delay: 0.15s;
+}
+@keyframes heroFadeIn {
+  to {
+    opacity: 1;
+  }
+}
+.hero-thread {
+  width: 2px;
+  height: 56px;
+  filter: blur(1.5px);
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(255, 69, 63, 0.6)
+  );
+}
+.phone-glow-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1100px;
+}
+.hex-halo {
+  position: absolute;
+  width: 900px;
+  height: 900px;
+}
+.hex-layer {
+  position: absolute;
+  inset: 0;
+}
+.hex-layer.layer-1 {
+  filter: blur(0px);
+  mask-image: radial-gradient(circle, black 18%, transparent 42%);
+  -webkit-mask-image: radial-gradient(
+    circle,
+    black 18%,
+    transparent 42%
+  );
+}
+.hex-layer.layer-2 {
+  filter: blur(7px);
+  mask-image: radial-gradient(circle, black 30%, transparent 64%);
+  -webkit-mask-image: radial-gradient(
+    circle,
+    black 30%,
+    transparent 64%
+  );
+}
+.hex-layer.layer-3 {
+  filter: blur(18px);
+  mask-image: radial-gradient(circle, black 22%, transparent 88%);
+  -webkit-mask-image: radial-gradient(
+    circle,
+    black 22%,
+    transparent 88%
+  );
+}
+.glow-blob {
+  position: absolute;
+  width: 520px;
+  height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 69, 63, 0.26),
+    rgba(255, 69, 63, 0) 75%
+  );
+  filter: blur(30px);
+}
+.phone-float {
+  position: relative;
+  z-index: 2;
+  animation: floatY 6.5s ease-in-out infinite;
+}
+@keyframes floatY {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-16px);
+  }
+}
+.hero-text-center {
+  position: relative;
+  z-index: 5;
+  max-width: 560px;
+  margin: -300px auto 0;
+  padding: 36px 24px;
+}
+.hero-text-center::before {
+  content: "";
+  position: absolute;
+  inset: -90px -100px;
+  z-index: -1;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  mask-image: radial-gradient(
+    ellipse at center,
+    black 0%,
+    black 35%,
+    transparent 72%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse at center,
+    black 0%,
+    black 35%,
+    transparent 72%
+  );
+  background: radial-gradient(
+    ellipse at center,
+    rgba(8, 6, 10, 0.94) 0%,
+    rgba(8, 6, 10, 0.75) 35%,
+    rgba(8, 6, 10, 0.35) 60%,
+    transparent 80%
+  );
+}
+@media (max-width: 720px) {
+  .hero-text-center {
+    margin-top: -160px;
+  }
+}
+.hero-sub {
+  font-size: 17px;
+  color: var(--text-dim);
+  margin: 0 auto 32px;
+  max-width: 460px;
+}
+.hero-actions {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal-in,
+  .hero-stage {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .phone-float {
+    animation: none !important;
+  }
+}
+
+/* realistic device frame — iOS incoming-call mock (docs/DESIGN_SYSTEM.md §5.11) */
+.device-frame {
+  position: relative;
+  width: 300px;
+  height: 624px;
+  border-radius: 56px;
+  background: linear-gradient(
+    160deg,
+    #55555c 0%,
+    #2c2c32 14%,
+    #1b1b20 45%,
+    #0c0c0e 85%
+  );
+  padding: 3px;
+  box-shadow: 0 80px 140px -30px rgba(0, 0, 0, 0.8),
+    0 24px 48px -20px rgba(0, 0, 0, 0.6),
+    inset 0 1px 1px rgba(255, 255, 255, 0.18),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.7);
+}
+.device-frame::before,
+.device-frame::after {
+  content: "";
+  position: absolute;
+  left: -2px;
+  width: 3px;
+  border-radius: 3px 0 0 3px;
+  background: linear-gradient(
+    90deg,
+    #050506,
+    #333338 40%,
+    #050506
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+.device-frame::before {
+  top: 118px;
+  height: 28px;
+}
+.device-frame::after {
+  top: 158px;
+  height: 56px;
+}
+.device-volume-down {
+  position: absolute;
+  left: -2px;
+  top: 224px;
+  width: 3px;
+  height: 56px;
+  border-radius: 3px 0 0 3px;
+  background: linear-gradient(90deg, #050506, #333338 40%, #050506);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+.device-power {
+  position: absolute;
+  right: -2px;
+  top: 176px;
+  width: 3px;
+  height: 90px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(90deg, #050506, #333338 60%, #050506);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+.device-screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 53px;
+  overflow: hidden;
+  background: radial-gradient(circle at 30% 0%, #241118, #08060a 68%);
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.6),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.9);
+}
+.device-island {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 96px;
+  height: 26px;
+  border-radius: 100px;
+  background: #000;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 10px;
+}
+.device-island::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #3a4a5c, #0a1016 70%);
+}
+.device-statusbar {
+  position: relative;
+  z-index: 4;
+  padding: 20px 26px 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.02em;
+}
+.device-reflection {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(
+      115deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0) 20%
+    ),
+    linear-gradient(
+      300deg,
+      rgba(255, 255, 255, 0.05) 0%,
+      rgba(255, 255, 255, 0) 15%
+    );
+}
+.call-screen {
+  position: absolute;
+  z-index: 2;
+  top: 64px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  text-align: center;
+  padding: 28px 20px 42px;
+}
+.call-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.incoming-tag {
+  display: inline-block;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--alarm);
+  margin-bottom: 30px;
+}
+.call-avatar {
+  width: 112px;
+  height: 112px;
+  margin-bottom: 22px;
+  border-radius: 50%;
+  background: linear-gradient(160deg, #3a1614, #1c0d0c);
+  border: 1px solid rgba(255, 69, 63, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38px;
+  font-weight: 700;
+  color: var(--alarm);
+}
+.call-name {
+  font-size: 23px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.call-sub {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+.call-actions {
+  display: flex;
+  justify-content: center;
+  gap: 68px;
+}
+.call-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.call-btn {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.5);
+}
+.call-btn svg {
+  width: 26px;
+  height: 26px;
+  fill: #fff;
+}
+.call-btn.decline {
+  background: var(--alarm);
+}
+.call-btn.decline svg {
+  transform: rotate(135deg);
+}
+.call-btn.accept {
+  background: var(--safe);
+}
+.call-action-label {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+@media (max-width: 480px) {
+  .device-frame {
+    width: 236px;
+    height: 488px;
+    border-radius: 44px;
+  }
+  .device-screen {
+    border-radius: 41px;
+  }
+  .hero-thread {
+    height: 40px;
+  }
+}
+
+/* SECTIONS — left-aligned, editorial (docs/DESIGN_SYSTEM.md §3) */
+.section {
+  padding: 96px 0;
+}
+.section-head {
+  max-width: 560px;
+  margin-bottom: 52px;
+}
+.section-eyebrow {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--alarm);
+  margin-bottom: 14px;
+}
+
+/* SPINE — center thread runs hero → footer, JS-built (docs/DESIGN_SYSTEM.md §5.9) */
+.spine-base,
+.spine-glow {
+  position: absolute;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 0;
+}
+.spine-base {
+  background: rgba(255, 69, 63, 0.1);
+  filter: blur(2px);
+}
+.spine-glow {
+  width: 5px;
+  background: rgba(255, 69, 63, 0.65);
+  filter: blur(5px);
+  box-shadow: 0 0 22px rgba(255, 69, 63, 0.5),
+    0 0 44px rgba(255, 69, 63, 0.25);
+  clip-path: inset(0 0 100% 0);
+}
+@media (max-width: 720px) {
+  .spine-base,
+  .spine-glow {
+    display: none;
+  }
+}
+
+/* FLOW — zigzag cards + glowing curve + card-light (docs/DESIGN_SYSTEM.md §5.6-5.8) */
+.flow-diagram {
+  position: relative;
+}
+.flow-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 0;
+}
+.flow-path-bg {
+  fill: none;
+  stroke: rgba(255, 69, 63, 0.15);
+  stroke-width: 1.5;
+}
+.flow-path-glow {
+  fill: none;
+  stroke: rgba(255, 69, 63, 0.75);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  filter: blur(2px)
+    drop-shadow(0 0 10px rgba(255, 69, 63, 0.7))
+    drop-shadow(0 0 22px rgba(255, 69, 63, 0.4));
+}
+.flow-list {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 88px;
+  padding: 12px 0;
+}
+.flow-row {
+  position: relative;
+  overflow: hidden;
+  max-width: 46%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: 2px solid rgba(255, 69, 63, 0.45);
+  border-radius: 4px;
+  padding: 40px 38px;
+}
+.flow-row.align-right {
+  margin-left: auto;
+}
+.card-light {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    ellipse 130% 70% at 50% -10%,
+    rgba(255, 69, 63, 0.4),
+    transparent 65%
+  );
+  transition: opacity 0.12s linear;
+}
+.flow-card-head,
+.flow-row > p {
+  position: relative;
+  z-index: 1;
+}
+.flow-card-head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+.flow-badge {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0% 50%);
+  background: var(--surface-2);
+  border: 1px solid rgba(255, 69, 63, 0.45);
+  color: var(--alarm);
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 0 0 18px rgba(255, 69, 63, 0.22);
+}
+.flow-row h4 {
+  font-size: 18px;
+  font-weight: 700;
+}
+.flow-row p {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+@media (max-width: 720px) {
+  .flow-svg {
+    display: none;
+  }
+  .flow-list {
+    gap: 24px;
+  }
+  .flow-row,
+  .flow-row.align-right {
+    max-width: 100%;
+    margin-left: 0;
+    padding: 30px 26px;
+  }
+}
+.flow-summary {
+  margin-top: 48px;
+  background: var(--surface);
+  border: 1px solid rgba(255, 69, 63, 0.3);
+  border-top: 2px solid rgba(255, 69, 63, 0.6);
+  border-radius: 4px;
+  padding: 44px;
+}
+.flow-summary p {
+  color: var(--text-dim);
+  font-size: 15px;
+  margin: 14px 0 26px;
+  max-width: 480px;
+}
+@media (max-width: 720px) {
+  .flow-summary {
+    padding: 32px 24px;
+  }
+}
+
+/* MESSAGE MOCK — asymmetric pairing, not centered (docs/DESIGN_SYSTEM.md §0-5) */
+.msg-section {
+  padding-top: 32px;
+}
+.msg-row-outer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 56px;
+  align-items: center;
+}
+@media (max-width: 720px) {
+  .msg-row-outer {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+}
+.msg-card {
+  justify-self: end;
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: 2px solid rgba(255, 69, 63, 0.45);
+  border-radius: 4px;
+  padding: 22px 24px;
+}
+@media (max-width: 720px) {
+  .msg-card {
+    justify-self: stretch;
+    max-width: none;
+  }
+}
+.msg-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.msg-avatar {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: var(--alarm-dim);
+  border: 1px solid rgba(255, 69, 63, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--alarm);
+}
+.msg-meta {
+  flex: 1;
+  min-width: 0;
+}
+.msg-sender {
+  font-size: 11px;
+  color: var(--amber);
+  margin-bottom: 2px;
+}
+.msg-preview {
+  font-size: 13.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.msg-time {
+  font-size: 11px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+.msg-caption {
+  justify-self: start;
+  max-width: 380px;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+/* WHY STATS — bento hierarchy, not 3 equal cards (docs/DESIGN_SYSTEM.md §5.5) */
+.why-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  grid-auto-rows: 1fr;
+  gap: 20px;
+}
+.why-tile {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-top: 2px solid rgba(255, 69, 63, 0.4);
+  border-radius: 4px;
+  padding: 32px 28px;
+  background: var(--surface);
+}
+.why-tile.featured {
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 40px 34px;
+}
+.why-tile .hex-bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0.12;
+  mask-image: radial-gradient(ellipse at 30% 30%, black, transparent 75%);
+  -webkit-mask-image: radial-gradient(
+    ellipse at 30% 30%,
+    black,
+    transparent 75%
+  );
+}
+.why-tile-inner {
+  position: relative;
+}
+.why-num {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 38px;
+  font-weight: 700;
+  color: var(--alarm);
+  letter-spacing: -0.02em;
+}
+.why-tile.featured .why-num {
+  font-size: 62px;
+}
+.why-label {
+  font-size: 13.5px;
+  color: var(--text-dim);
+  margin-top: 8px;
+}
+.why-tile.featured .why-label {
+  font-size: 14.5px;
+  margin-top: 10px;
+}
+@media (max-width: 720px) {
+  .why-grid {
+    grid-template-columns: 1fr;
+  }
+  .why-tile.featured {
+    grid-row: auto;
+  }
+}
+
+/* IMPACT — grounded before/after, no fabricated data (docs/DESIGN_SYSTEM.md §7) */
+.impact-row {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.impact-block .impact-label {
+  font-size: 13.5px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.impact-num {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 64px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-dim);
+}
+.impact-num.accent {
+  color: var(--alarm);
+}
+.impact-arrow {
+  font-size: 28px;
+  color: var(--text-dim);
+}
+@media (max-width: 720px) {
+  .impact-num {
+    font-size: 44px;
+  }
+}
+.impact-note {
+  font-size: 13.5px;
+  color: var(--text-dim);
+  max-width: 480px;
+}
+
+/* THESIS QUOTE — sourced from the proposal, not a fabricated review (docs/DESIGN_SYSTEM.md §5.12) */
+.thesis-block {
+  max-width: 660px;
+}
+.thesis-eyebrow {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--alarm);
+  margin-bottom: 18px;
+}
+.thesis-block blockquote {
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  margin-bottom: 18px;
+}
+@media (max-width: 720px) {
+  .thesis-block blockquote {
+    font-size: 22px;
+  }
+}
+.thesis-block .thesis-sub {
+  font-size: 15px;
+  color: var(--text-dim);
+  max-width: 480px;
+}
+
+/* CTA BANNER — always wrapped in .wrap, never full-bleed (docs/DESIGN_SYSTEM.md §5.10) */
+.cta-banner {
+  background: var(--alarm);
+  color: #2a0806;
+  padding: 32px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.cta-banner-section {
+  padding: 48px 0;
+}
+.cta-banner .headline {
+  font-size: 20px;
+  font-weight: 900;
+}
+.cta-banner a {
+  color: #2a0806;
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+@media (max-width: 720px) {
+  .cta-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* TYPE GRID — chapter numbering is real product sequence (docs/DESIGN_SYSTEM.md §0-3) */
+.type-section {
+  position: relative;
+}
+.type-section .hex-bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0.3;
+  mask-image: radial-gradient(ellipse at 20% 30%, black, transparent 65%);
+  -webkit-mask-image: radial-gradient(
+    ellipse at 20% 30%,
+    black,
+    transparent 65%
+  );
+}
+.type-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 20px;
+}
+@media (max-width: 960px) {
+  .type-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .type-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.type-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: 2px solid rgba(255, 69, 63, 0.4);
+  border-radius: 4px;
+  padding: 24px 22px;
+}
+.type-card .type-chapter {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  color: var(--alarm);
+  margin-bottom: 14px;
+}
+.type-card h4 {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.type-card p {
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+
+/* FOOTER CTA — hex-bg glow moved off-center, not a random shape (docs/DESIGN_SYSTEM.md §4) */
+.footer-cta {
+  position: relative;
+  padding: 100px 0 90px;
+  overflow: hidden;
+}
+.footer-glow {
+  position: absolute;
+  inset: 0;
+  opacity: 0.3;
+  mask-image: radial-gradient(ellipse at 80% 30%, black, transparent 65%);
+  -webkit-mask-image: radial-gradient(
+    ellipse at 80% 30%,
+    black,
+    transparent 65%
+  );
+}
+.footer-cta-inner {
+  position: relative;
+  max-width: 560px;
+}
+.footer-cta h2 {
+  margin-bottom: 14px;
+}
+.footer-cta p {
+  color: var(--text-dim);
+  font-size: 15px;
+  margin-bottom: 32px;
+}
+
+footer {
+  border-top: 1px solid var(--line);
+  padding: 36px 0;
+}
+footer .wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+@media (max-width: 720px) {
+  footer .wrap {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+}
+
+/* SCROLL REVEAL — below the fold, IntersectionObserver-driven (docs/DESIGN_SYSTEM.md §6.2) */
+.flow-row,
+.flow-summary,
+.msg-card,
+.msg-caption,
+.why-tile,
+.thesis-block,
+.type-card,
+.footer-cta-inner {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.7s cubic-bezier(0.16, 0.8, 0.24, 1),
+    transform 0.7s cubic-bezier(0.16, 0.8, 0.24, 1);
+}
+.flow-row.is-visible,
+.flow-summary.is-visible,
+.msg-card.is-visible,
+.msg-caption.is-visible,
+.why-tile.is-visible,
+.thesis-block.is-visible,
+.type-card.is-visible,
+.footer-cta-inner.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.flow-list .flow-row:nth-child(2) {
+  transition-delay: 0.08s;
+}
+.flow-list .flow-row:nth-child(3) {
+  transition-delay: 0.16s;
+}
+.type-grid .type-card:nth-child(2) {
+  transition-delay: 0.08s;
+}
+.type-grid .type-card:nth-child(3) {
+  transition-delay: 0.16s;
+}
+.type-grid .type-card:nth-child(4) {
+  transition-delay: 0.24s;
+}
+.type-grid .type-card:nth-child(5) {
+  transition-delay: 0.32s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .flow-row,
+  .flow-summary,
+  .msg-card,
+  .msg-caption,
+  .why-tile,
+  .thesis-block,
+  .type-card,
+  .footer-cta-inner {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
