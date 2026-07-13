@@ -96,9 +96,21 @@ class _ReportScreenState extends State<ReportScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '📞 신고 진행 현황',
-                style: textTheme.labelLarge?.copyWith(color: AppColors.amber),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.local_phone_rounded,
+                    size: 16,
+                    color: AppColors.alarm,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '신고 진행 현황',
+                    style: textTheme.labelLarge?.copyWith(
+                      color: AppColors.alarm,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 4),
               Text(
@@ -161,7 +173,7 @@ class _EvidenceSubmissionSelector extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(4),
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
@@ -171,13 +183,13 @@ class _EvidenceSubmissionSelector extends StatelessWidget {
             children: [
               const Icon(
                 Icons.bookmark_rounded,
-                color: AppColors.amber,
+                color: AppColors.alarm,
                 size: 18,
               ),
               const SizedBox(width: 8),
               Text(
-                '📎 제출할 증거 선택',
-                style: textTheme.labelLarge?.copyWith(color: AppColors.amber),
+                '제출할 증거 선택',
+                style: textTheme.labelLarge?.copyWith(color: AppColors.alarm),
               ),
             ],
           ),
@@ -214,7 +226,7 @@ class _EvidenceSubmissionSelector extends StatelessWidget {
                       controlAffinity: ListTileControlAffinity.leading,
                       contentPadding: EdgeInsets.zero,
                       dense: true,
-                      activeColor: AppColors.amber,
+                      activeColor: AppColors.alarm,
                       title: Text(
                         '"${item.sourceText}"',
                         style: textTheme.bodySmall,
@@ -257,7 +269,7 @@ class _ReportCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(4),
         border: Border.all(
           color: sent
               ? AppColors.safe.withValues(alpha: 0.5)
@@ -272,10 +284,10 @@ class _ReportCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.amber.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppColors.alarm.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(4),
                 ),
-                child: Icon(icon, color: AppColors.amber, size: 20),
+                child: Icon(icon, color: AppColors.alarm, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -307,7 +319,7 @@ class _ReportCard extends StatelessWidget {
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: AppColors.background,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
                 reply!,
@@ -332,16 +344,16 @@ class _ReportCard extends StatelessWidget {
                       filled: true,
                       fillColor: AppColors.background,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(4),
                         borderSide: const BorderSide(color: AppColors.border),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(4),
                         borderSide: const BorderSide(color: AppColors.border),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: AppColors.amber),
+                        borderRadius: BorderRadius.circular(4),
+                        borderSide: const BorderSide(color: AppColors.alarm),
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14,
@@ -357,12 +369,12 @@ class _ReportCard extends StatelessWidget {
                     width: 44,
                     height: 44,
                     decoration: const BoxDecoration(
-                      color: AppColors.amber,
+                      color: AppColors.alarm,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
                       Icons.send_rounded,
-                      color: AppColors.background,
+                      color: AppColors.onAlarm,
                       size: 20,
                     ),
                   ),
@@ -395,7 +407,7 @@ class _StageProgressBar extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 2),
               decoration: BoxDecoration(
                 color: active
-                    ? AppColors.amber
+                    ? AppColors.alarm
                     : filled
                     ? AppColors.safe
                     : AppColors.border,

@@ -94,9 +94,21 @@ class _SmsScreenState extends State<SmsScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '📩 새로운 문자가 도착했습니다',
-                style: textTheme.labelLarge?.copyWith(color: AppColors.amber),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.mail_outline_rounded,
+                    size: 16,
+                    color: AppColors.alarm,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '새로운 문자가 도착했습니다',
+                    style: textTheme.labelLarge?.copyWith(
+                      color: AppColors.alarm,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 20),
               AnimatedOpacity(
@@ -120,9 +132,6 @@ class _SmsScreenState extends State<SmsScreen>
                         foregroundColor: AppColors.textSecondary,
                         side: const BorderSide(color: AppColors.border),
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
                       ),
                       child: const Text('뒤로'),
                     ),
@@ -163,72 +172,82 @@ class _SmsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.alarm.withValues(alpha: 0.4)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.alarm.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.sms_rounded,
-                    color: AppColors.alarm,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        sender,
-                        style: textTheme.titleSmall?.copyWith(
-                          color: AppColors.alarm,
-                        ),
-                      ),
-                      Text(
-                        '방금 전',
-                        style: textTheme.labelSmall?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (onReadAloud != null)
-                  IconButton(
-                    onPressed: onReadAloud,
-                    icon: const Icon(
-                      Icons.volume_up_rounded,
-                      color: AppColors.textSecondary,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          border: Border(
+            top: BorderSide(
+              color: AppColors.alarm.withValues(alpha: 0.6),
+              width: 2,
+            ),
+            left: const BorderSide(color: AppColors.border),
+            right: const BorderSide(color: AppColors.border),
+            bottom: const BorderSide(color: AppColors.border),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.alarm.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(4),
                     ),
-                    tooltip: '소리로 읽기',
+                    child: const Icon(
+                      Icons.sms_rounded,
+                      color: AppColors.alarm,
+                      size: 20,
+                    ),
                   ),
-              ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          sender,
+                          style: textTheme.titleSmall?.copyWith(
+                            color: AppColors.alarm,
+                          ),
+                        ),
+                        Text(
+                          '방금 전',
+                          style: textTheme.labelSmall?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (onReadAloud != null)
+                    IconButton(
+                      onPressed: onReadAloud,
+                      icon: const Icon(
+                        Icons.volume_up_rounded,
+                        color: AppColors.textSecondary,
+                      ),
+                      tooltip: '소리로 읽기',
+                    ),
+                ],
+              ),
             ),
-          ),
-          const Divider(color: AppColors.border, height: 1),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Text(
-              content,
-              style: textTheme.bodyLarge?.copyWith(height: 1.7),
+            const Divider(color: AppColors.border, height: 1),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text(
+                content,
+                style: textTheme.bodyLarge?.copyWith(height: 1.7),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -241,7 +260,7 @@ class _SuspicionBanner extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.amber.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(4),
         border: Border.all(color: AppColors.amber.withValues(alpha: 0.3)),
       ),
       child: Row(
@@ -286,7 +305,7 @@ class _StageProgressBar extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 2),
               decoration: BoxDecoration(
                 color: active
-                    ? AppColors.amber
+                    ? AppColors.alarm
                     : filled
                     ? AppColors.safe
                     : AppColors.border,

@@ -54,9 +54,21 @@ class EvidenceScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '📎 내가 모은 증거',
-                style: textTheme.labelLarge?.copyWith(color: AppColors.amber),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.bookmark_rounded,
+                    size: 16,
+                    color: AppColors.alarm,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '내가 모은 증거',
+                    style: textTheme.labelLarge?.copyWith(
+                      color: AppColors.alarm,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 4),
               Text(
@@ -158,8 +170,8 @@ class _SavedEvidenceTile extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.safe.withValues(alpha: 0.4)),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
@@ -188,7 +200,7 @@ class _PendingJudgmentNotice extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.amber.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(4),
         border: Border.all(color: AppColors.amber.withValues(alpha: 0.3)),
       ),
       child: Row(
@@ -233,7 +245,7 @@ class _StageProgressBar extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 2),
               decoration: BoxDecoration(
                 color: active
-                    ? AppColors.amber
+                    ? AppColors.alarm
                     : filled
                     ? AppColors.safe
                     : AppColors.border,

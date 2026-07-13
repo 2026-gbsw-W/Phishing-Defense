@@ -154,7 +154,7 @@ class _ResultScreenState extends State<ResultScreen>
                   _AnalysisSection(
                     title: '증거 판정 (${_score.evidenceScore}/20점)',
                     icon: Icons.search_rounded,
-                    color: AppColors.amber,
+                    color: AppColors.alarm,
                     content:
                         _validSubmitted.isEmpty && _invalidSubmitted.isEmpty
                         ? '제출한 증거가 없습니다. 다음엔 대화 중 의심스러운 대사를 저장해 제출해보세요.'
@@ -206,9 +206,6 @@ class _ResultScreenState extends State<ResultScreen>
                             foregroundColor: AppColors.textSecondary,
                             side: const BorderSide(color: AppColors.border),
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
                           ),
                           child: const Text('목록으로'),
                         ),
@@ -255,10 +252,10 @@ class _ScoreBadge extends StatelessWidget {
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(4),
         border: Border.all(
           color: stars >= 3
-              ? AppColors.amber.withValues(alpha: 0.5)
+              ? AppColors.alarm.withValues(alpha: 0.5)
               : AppColors.border,
         ),
         gradient: stars >= 3
@@ -266,7 +263,7 @@ class _ScoreBadge extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  AppColors.amber.withValues(alpha: 0.08),
+                  AppColors.alarm.withValues(alpha: 0.08),
                   AppColors.surface,
                 ],
               )
@@ -276,10 +273,10 @@ class _ScoreBadge extends StatelessWidget {
         children: [
           Text(
             stars >= 3
-                ? '완벽한 대응! 🎉'
+                ? '완벽한 대응!'
                 : stars >= 2
-                ? '잘 하셨습니다 👍'
-                : '아직 성장 중... 💪',
+                ? '잘 하셨습니다'
+                : '아직 성장 중...',
             style: textTheme.titleLarge,
           ),
           const SizedBox(height: 4),
@@ -297,7 +294,7 @@ class _ScoreBadge extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Icon(
                   i < stars ? Icons.star_rounded : Icons.star_outline_rounded,
-                  color: AppColors.amber,
+                  color: AppColors.alarm,
                   size: 40,
                 ),
               );
@@ -307,12 +304,12 @@ class _ScoreBadge extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             decoration: BoxDecoration(
-              color: AppColors.amber.withValues(alpha: 0.15),
+              color: AppColors.alarm.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(50),
             ),
             child: Text(
               '+${score.totalXp} XP 획득!',
-              style: textTheme.titleMedium?.copyWith(color: AppColors.amber),
+              style: textTheme.titleMedium?.copyWith(color: AppColors.alarm),
             ),
           ),
         ],
@@ -343,7 +340,7 @@ class _AnalysisSection extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(4),
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
@@ -390,7 +387,7 @@ class _EvidenceJudgmentSection extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(4),
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
@@ -400,13 +397,13 @@ class _EvidenceJudgmentSection extends StatelessWidget {
             children: [
               const Icon(
                 Icons.fact_check_rounded,
-                color: AppColors.amber,
+                color: AppColors.alarm,
                 size: 20,
               ),
               const SizedBox(width: 8),
               Text(
                 '제출한 증거 판정',
-                style: textTheme.labelLarge?.copyWith(color: AppColors.amber),
+                style: textTheme.labelLarge?.copyWith(color: AppColors.alarm),
               ),
             ],
           ),
@@ -517,7 +514,7 @@ class _TipSection extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.safe.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(4),
         border: Border.all(color: AppColors.safe.withValues(alpha: 0.3)),
       ),
       child: Column(
@@ -609,7 +606,7 @@ class _XpBarState extends State<_XpBar> with SingleTickerProviderStateMixin {
             ),
             Text(
               '누적 ${widget.xp} XP',
-              style: textTheme.labelMedium?.copyWith(color: AppColors.amber),
+              style: textTheme.labelMedium?.copyWith(color: AppColors.alarm),
             ),
           ],
         ),
@@ -622,7 +619,7 @@ class _XpBarState extends State<_XpBar> with SingleTickerProviderStateMixin {
               value: _anim.value,
               minHeight: 10,
               backgroundColor: AppColors.border,
-              valueColor: const AlwaysStoppedAnimation(AppColors.amber),
+              valueColor: const AlwaysStoppedAnimation(AppColors.alarm),
             ),
           ),
         ),
@@ -651,7 +648,7 @@ class _StageProgressBar extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 2),
               decoration: BoxDecoration(
                 color: active
-                    ? AppColors.amber
+                    ? AppColors.alarm
                     : filled
                     ? AppColors.safe
                     : AppColors.border,
