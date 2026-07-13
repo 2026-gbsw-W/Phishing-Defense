@@ -7,4 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface StageRepository extends JpaRepository<Stage, Long> {
 
     List<Stage> findByChapterIdOrderByStageIdAsc(Integer chapterId);
+
+    List<Stage> findByDifficultyAndPhishingType(Integer difficulty, String phishingType);
+
+    List<Stage> findByDifficulty(Integer difficulty);
 }

@@ -59,8 +59,8 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), "INVALID_INPUT", e.getMessage()));
     }
 
-    @ExceptionHandler(ScenarioRecordAlreadyCompletedException.class)
-    public ResponseEntity<ErrorResponse> handleScenarioAlreadyCompleted(ScenarioRecordAlreadyCompletedException e) {
+    @ExceptionHandler({ScenarioRecordAlreadyCompletedException.class, ReportAlreadyClaimedException.class})
+    public ResponseEntity<ErrorResponse> handleScenarioAlreadyCompleted(RuntimeException e) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ErrorResponse.of(HttpStatus.CONFLICT.value(), "ALREADY_COMPLETED", e.getMessage()));
     }

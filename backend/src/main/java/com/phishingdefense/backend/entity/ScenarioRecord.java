@@ -149,4 +149,26 @@ public class ScenarioRecord {
         this.evidenceMarkedCount = markedCount;
         this.evidenceSubmittedCount = submittedCount;
     }
+
+    public void applyScoring(int accuracyScore, int evidenceScore, int reportHandlingScore,
+                              int hintScore, int totalScore, int starRating) {
+        this.accuracyScore = accuracyScore;
+        this.evidenceScore = evidenceScore;
+        this.reportHandlingScore = reportHandlingScore;
+        this.hintPenalty = hintScore;
+        this.totalScore = totalScore;
+        this.starRating = starRating;
+    }
+
+    public void markCompleted() {
+        this.completed = true;
+    }
+
+    public void markReported() {
+        this.reported = true;
+    }
+
+    public boolean isReported() {
+        return Boolean.TRUE.equals(this.reported);
+    }
 }
