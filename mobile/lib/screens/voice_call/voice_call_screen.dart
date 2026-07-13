@@ -619,49 +619,59 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       body: SafeArea(
         child: Column(
           children: [
-            // ── 상단 바 ──────────────────────────────────────────────────────
-            _TopBar(
-              timer: _timerText,
-              isConnecting: _state == _CallState.connecting,
-            ),
+            // ── 스크롤 가능한 상단 영역 ───────────────────────────────────────
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: Column(
+                  children: [
+                    // ── 상단 바 ────────────────────────────────────────────────
+                    _TopBar(
+                      timer: _timerText,
+                      isConnecting: _state == _CallState.connecting,
+                    ),
 
-            // ── 발신자 정보 + 아바타 ─────────────────────────────────────────
-            const SizedBox(height: 20),
-            _CallerCard(
-              caller: _caller,
-              pulseAnim: _pulseAnim,
-              isSpeaking: isSpeaking,
-              statusText: _statusText,
-            ),
+                    // ── 발신자 정보 + 아바타 ───────────────────────────────────
+                    const SizedBox(height: 20),
+                    _CallerCard(
+                      caller: _caller,
+                      pulseAnim: _pulseAnim,
+                      isSpeaking: isSpeaking,
+                      statusText: _statusText,
+                    ),
 
-            // ── 위험 신호 배너 ────────────────────────────────────────────────
-            if (_currentDanger.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              _DangerBanner(text: _currentDanger),
-            ],
+                    // ── 위험 신호 배너 ─────────────────────────────────────────
+                    if (_currentDanger.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _DangerBanner(text: _currentDanger),
+                    ],
 
-            // ── 대화 로그 ─────────────────────────────────────────────────────
-            const SizedBox(height: 12),
-            _LogToggleBar(
-              showLog: _showLog,
-              msgCount: _msgs.length,
-              onToggle: () => setState(() => _showLog = !_showLog),
-            ),
-            if (_showLog)
-              _LogPanel(msgs: _msgs, scrollCtrl: _logScrollCtrl),
+                    // ── 대화 로그 ──────────────────────────────────────────────
+                    const SizedBox(height: 12),
+                    _LogToggleBar(
+                      showLog: _showLog,
+                      msgCount: _msgs.length,
+                      onToggle: () => setState(() => _showLog = !_showLog),
+                    ),
+                    if (_showLog)
+                      _LogPanel(msgs: _msgs, scrollCtrl: _logScrollCtrl),
 
-            const Spacer(),
+                    // ── 음성 입력 파형 표시 ────────────────────────────────────
+                    if (isRecording || isProcessing) ...[
+                      const SizedBox(height: 16),
+                      _VoiceStatus(
+                        isRecording: isRecording,
+                        waveCtrl: _waveCtrl,
+                      ),
+                    ],
 
-            // ── 음성 입력 파형 표시 ──────────────────────────────────────────
-            if (isRecording || isProcessing)
-              _VoiceStatus(
-                isRecording: isRecording,
-                waveCtrl: _waveCtrl,
+                    const SizedBox(height: 12),
+                  ],
+                ),
               ),
+            ),
 
-            const SizedBox(height: 16),
-
-            // ── 피싱 대응 버튼 row ───────────────────────────────────────────
+            // ── 피싱 대응 버튼 row (고정) ────────────────────────────────────
             _PhishingActions(
               onReport: _reportSuspicion,
               onEvidence: _showEvidenceDialog,
@@ -671,9 +681,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
               evidenceCount: _savedEvidenceTexts.length,
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-            // ── 통화 기능 버튼 row ────────────────────────────────────────────
+            // ── 통화 기능 버튼 row (고정) ────────────────────────────────────
             _CallControls(
               isMuted: _isMuted,
               isSpeaker: _isSpeaker,
@@ -687,7 +697,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
               onEndCall: _confirmEndCall,
             ),
 
-            const SizedBox(height: 28),
+            const SizedBox(height: 16),
           ],
         ),
       ),
