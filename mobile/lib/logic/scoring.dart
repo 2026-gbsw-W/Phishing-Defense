@@ -80,7 +80,9 @@ ScoreBreakdown calculateScore({
   required bool judgedCorrectly,
   required int judgmentTurn,
   required int wrongAttempts,
-  required int evidenceCollectedPercentage,
+  required int evidenceTotalCatalog,
+  required int evidenceValidSubmittedCount,
+  required int evidenceInvalidSubmittedCount,
   required int reportHandledCount,
 }) {
   const responseQualityScore = 20;
@@ -90,19 +92,34 @@ ScoreBreakdown calculateScore({
     wrongAttempts: wrongAttempts,
   );
   final accuracyScore = judgmentComponent + responseQualityScore;
-  final evidenceScore = _evidenceScoreFor(evidenceCollectedPercentage);
+
+  final evidencePercentage = evidenceTotalCatalog == 0
+      ? 0
+      : ((evidenceValidSubmittedCount / evidenceTotalCatalog) * 100).round();
+  final evidenceScore = _evidenceScoreFor(evidencePercentage);
   final reportScore = _reportScoreFor(reportHandledCount);
 
-  final totalScore =
-      (accuracyScore + evidenceScore + reportScore).clamp(0, 100);
+  final totalScore = (accuracyScore + evidenceScore + reportScore).clamp(
+    0,
+    100,
+  );
   final starRating = _starRatingFor(totalScore);
 
   const baseXp = 150;
   final starBonusXp = _starBonusXpFor(starRating);
-  final evidenceBonusXp = evidenceCollectedPercentage >= 100 ? 40 : 0;
+  final evidencePerfect =
+      evidencePercentage >= 100 && evidenceInvalidSubmittedCount == 0;
+  final evidenceBonusXp = evidencePerfect ? 40 : 0;
+  final invalidSubmissionPenaltyXp = evidenceInvalidSubmittedCount * 5;
   final reportBonusXp = reportHandledCount >= 2 ? 50 : 0;
 
-  final totalXp = baseXp + starBonusXp + evidenceBonusXp + reportBonusXp;
+  final totalXp =
+      (baseXp +
+              starBonusXp +
+              evidenceBonusXp +
+              reportBonusXp -
+              invalidSubmissionPenaltyXp)
+          .clamp(0, 1000000);
 
   return ScoreBreakdown(
     accuracyScore: accuracyScore,

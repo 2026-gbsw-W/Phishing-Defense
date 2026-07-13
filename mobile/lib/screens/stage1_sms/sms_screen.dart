@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 import '../../models/scenario.dart';
+import '../../services/evidence_collector.dart';
 import '../../theme/app_colors.dart';
 import '../stage2_chat/chat_screen.dart';
 
@@ -14,10 +15,12 @@ class SmsScreen extends StatefulWidget {
   State<SmsScreen> createState() => _SmsScreenState();
 }
 
-class _SmsScreenState extends State<SmsScreen> with SingleTickerProviderStateMixin {
+class _SmsScreenState extends State<SmsScreen>
+    with SingleTickerProviderStateMixin {
   late final FlutterTts _tts;
   late final AnimationController _pulseController;
   late final Animation<double> _pulseAnimation;
+  final _evidenceCollector = EvidenceCollector();
 
   bool _messageVisible = false;
   bool _ttsReady = false;
@@ -63,7 +66,12 @@ class _SmsScreenState extends State<SmsScreen> with SingleTickerProviderStateMix
     _tts.stop();
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => ChatScreen(scenario: widget.scenario)),
+      MaterialPageRoute(
+        builder: (_) => ChatScreen(
+          scenario: widget.scenario,
+          evidenceCollector: _evidenceCollector,
+        ),
+      ),
     );
   }
 
@@ -174,24 +182,39 @@ class _SmsCard extends StatelessWidget {
                     color: AppColors.alarm.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.sms_rounded, color: AppColors.alarm, size: 20),
+                  child: const Icon(
+                    Icons.sms_rounded,
+                    color: AppColors.alarm,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(sender,
-                          style: textTheme.titleSmall?.copyWith(color: AppColors.alarm)),
-                      Text('방금 전',
-                          style: textTheme.labelSmall?.copyWith(color: AppColors.textSecondary)),
+                      Text(
+                        sender,
+                        style: textTheme.titleSmall?.copyWith(
+                          color: AppColors.alarm,
+                        ),
+                      ),
+                      Text(
+                        '방금 전',
+                        style: textTheme.labelSmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 if (onReadAloud != null)
                   IconButton(
                     onPressed: onReadAloud,
-                    icon: const Icon(Icons.volume_up_rounded, color: AppColors.textSecondary),
+                    icon: const Icon(
+                      Icons.volume_up_rounded,
+                      color: AppColors.textSecondary,
+                    ),
                     tooltip: '소리로 읽기',
                   ),
               ],
@@ -223,15 +246,18 @@ class _SuspicionBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.lightbulb_outline_rounded, color: AppColors.amber, size: 20),
+          const Icon(
+            Icons.lightbulb_outline_rounded,
+            color: AppColors.amber,
+            size: 20,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               '이 메시지가 진짜인지 AI와 대화해보며 확인해보세요!',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: AppColors.amber),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.amber),
             ),
           ),
         ],
@@ -262,8 +288,8 @@ class _StageProgressBar extends StatelessWidget {
                 color: active
                     ? AppColors.amber
                     : filled
-                        ? AppColors.safe
-                        : AppColors.border,
+                    ? AppColors.safe
+                    : AppColors.border,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),

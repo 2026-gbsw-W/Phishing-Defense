@@ -1,9 +1,9 @@
 import '../models/scenario.dart';
 
 class AiTurnResult {
-  const AiTurnResult({required this.message, required this.consumedScript});
+  const AiTurnResult({required this.line, required this.consumedScript});
 
-  final String message;
+  final AiLine line;
   final bool consumedScript;
 }
 
@@ -34,20 +34,20 @@ class ScriptedAiResponseEngine implements AiResponseEngine {
     switch (branch) {
       case ChatBranch.suspicious:
         return AiTurnResult(
-          message: scenario.suspicionResponseFor(turnIndex),
+          line: AiLine(scenario.suspicionResponseFor(turnIndex)),
           consumedScript: false,
         );
       case ChatBranch.refusal:
         return AiTurnResult(
-          message: scenario.refusalResponseFor(turnIndex),
+          line: AiLine(scenario.refusalResponseFor(turnIndex)),
           consumedScript: false,
         );
       case ChatBranch.comply:
         final responses = scenario.aiResponses;
-        final message = scriptIndex < responses.length
+        final line = scriptIndex < responses.length
             ? responses[scriptIndex]
             : scenario.aiFallbackResponse;
-        return AiTurnResult(message: message, consumedScript: true);
+        return AiTurnResult(line: line, consumedScript: true);
     }
   }
 }

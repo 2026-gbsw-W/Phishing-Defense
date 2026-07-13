@@ -39,7 +39,11 @@ class ScenarioCard extends StatelessWidget {
                   color: scenario.accentColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(scenario.icon, color: scenario.accentColor, size: 26),
+                child: Icon(
+                  scenario.icon,
+                  color: scenario.accentColor,
+                  size: 26,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -77,7 +81,10 @@ class ScenarioCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textSecondary,
+              ),
             ],
           ),
         ),

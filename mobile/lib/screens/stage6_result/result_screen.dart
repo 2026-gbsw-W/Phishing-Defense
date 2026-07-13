@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../logic/scoring.dart';
 import '../../models/scenario.dart';
+import '../../services/evidence_collector.dart';
 import '../../services/game_progress.dart';
 import '../../theme/app_colors.dart';
 import '../scenario_selection/scenario_selection_screen.dart';
@@ -16,7 +17,7 @@ class ResultScreen extends StatefulWidget {
     required this.judgedCorrectly,
     required this.judgmentTurn,
     required this.wrongAttempts,
-    required this.evidenceCollectedPercentage,
+    required this.evidenceCollector,
     required this.reportHandledCount,
   });
 
@@ -24,7 +25,7 @@ class ResultScreen extends StatefulWidget {
   final bool judgedCorrectly;
   final int judgmentTurn;
   final int wrongAttempts;
-  final int evidenceCollectedPercentage;
+  final EvidenceCollector evidenceCollector;
   final int reportHandledCount;
 
   @override
@@ -38,15 +39,30 @@ class _ResultScreenState extends State<ResultScreen>
   late final Animation<double> _scaleAnim;
 
   late final ScoreBreakdown _score;
+  late final List<SavedEvidence> _validSubmitted;
+  late final List<SavedEvidence> _invalidSubmitted;
+  late final List<EvidenceItem> _missedEvidence;
 
   @override
   void initState() {
     super.initState();
+
+    final submitted = widget.evidenceCollector.submittedEvidence;
+    _validSubmitted = submitted.where((e) => e.isValid).toList();
+    _invalidSubmitted = submitted.where((e) => !e.isValid).toList();
+
+    final matchedLabels = _validSubmitted.map((e) => e.matchedLabel).toSet();
+    _missedEvidence = widget.scenario.evidence
+        .where((item) => !matchedLabels.contains(item.label))
+        .toList();
+
     _score = calculateScore(
       judgedCorrectly: widget.judgedCorrectly,
       judgmentTurn: widget.judgmentTurn,
       wrongAttempts: widget.wrongAttempts,
-      evidenceCollectedPercentage: widget.evidenceCollectedPercentage,
+      evidenceTotalCatalog: widget.scenario.evidence.length,
+      evidenceValidSubmittedCount: _validSubmitted.length,
+      evidenceInvalidSubmittedCount: _invalidSubmitted.length,
       reportHandledCount: widget.reportHandledCount,
     );
 
@@ -120,21 +136,29 @@ class _ResultScreenState extends State<ResultScreen>
                   _AnalysisSection(
                     title: '판단 결과 (${_score.accuracyScore}/50점)',
                     icon: Icons.gavel_rounded,
-                    color: widget.judgedCorrectly ? AppColors.safe : AppColors.alarm,
+                    color: widget.judgedCorrectly
+                        ? AppColors.safe
+                        : AppColors.alarm,
                     content: widget.judgedCorrectly
                         ? widget.wrongAttempts > 0
-                            ? '한 번 오판했지만 다시 생각해서 정답을 맞히셨습니다. 처음부터 신중하게 판단하는 연습을 더 해보세요.'
-                            : '${widget.judgmentTurn}번째 대화에서 피싱을 정확히 감지하셨습니다!'
-                                '${widget.judgmentTurn <= 2 ? ' 의심 단서를 빠르게 포착하는 능력이 뛰어납니다.' : widget.judgmentTurn <= 4 ? ' 조금 더 빠르게 의심할 수 있다면 더 좋습니다.' : ' 다음엔 조금 더 빠르게 의심해보세요.'}'
+                              ? '한 번 오판했지만 다시 생각해서 정답을 맞히셨습니다. 처음부터 신중하게 판단하는 연습을 더 해보세요.'
+                              : '${widget.judgmentTurn}번째 대화에서 피싱을 정확히 감지하셨습니다!'
+                                    '${widget.judgmentTurn <= 2
+                                        ? ' 의심 단서를 빠르게 포착하는 능력이 뛰어납니다.'
+                                        : widget.judgmentTurn <= 4
+                                        ? ' 조금 더 빠르게 의심할 수 있다면 더 좋습니다.'
+                                        : ' 다음엔 조금 더 빠르게 의심해보세요.'}'
                         : '${widget.wrongAttempts}번의 기회에도 피싱 여부를 잘못 판단하셨습니다. 대화 속 단서를 다시 확인해보세요.',
                   ),
                   const SizedBox(height: 16),
                   _AnalysisSection(
-                    title: '증거 수집 (${_score.evidenceScore}/20점)',
+                    title: '증거 판정 (${_score.evidenceScore}/20점)',
                     icon: Icons.search_rounded,
                     color: AppColors.amber,
                     content:
-                        '수집률 ${widget.evidenceCollectedPercentage}%를 달성했습니다. 놓친 증거는 아래 목록에서 확인하세요.',
+                        _validSubmitted.isEmpty && _invalidSubmitted.isEmpty
+                        ? '제출한 증거가 없습니다. 다음엔 대화 중 의심스러운 대사를 저장해 제출해보세요.'
+                        : '제출 ${_validSubmitted.length + _invalidSubmitted.length}개 중 ${_validSubmitted.length}개가 유효한 증거로 인정됐습니다.',
                   ),
                   const SizedBox(height: 16),
                   _AnalysisSection(
@@ -144,11 +168,15 @@ class _ResultScreenState extends State<ResultScreen>
                     content: widget.reportHandledCount >= 2
                         ? '경찰·은행 신고 모두 명확하게 대응하셨습니다.'
                         : widget.reportHandledCount == 1
-                            ? '한쪽 신고만 완료했습니다. 다음엔 양쪽 모두 대응해보세요.'
-                            : '신고 대응이 부족했습니다.',
+                        ? '한쪽 신고만 완료했습니다. 다음엔 양쪽 모두 대응해보세요.'
+                        : '신고 대응이 부족했습니다.',
                   ),
                   const SizedBox(height: 16),
-                  _EvidenceSection(hints: widget.scenario.phishingHints),
+                  _EvidenceJudgmentSection(
+                    validSubmitted: _validSubmitted,
+                    invalidSubmitted: _invalidSubmitted,
+                    missed: _missedEvidence,
+                  ),
                   const SizedBox(height: 16),
                   _TipSection(),
                   const SizedBox(height: 32),
@@ -169,7 +197,8 @@ class _ResultScreenState extends State<ResultScreen>
                             Navigator.pushAndRemoveUntil(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) => const ScenarioSelectionScreen()),
+                                builder: (_) => const ScenarioSelectionScreen(),
+                              ),
                               (_) => false,
                             );
                           },
@@ -191,7 +220,8 @@ class _ResultScreenState extends State<ResultScreen>
                             Navigator.pushAndRemoveUntil(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) => const ScenarioSelectionScreen()),
+                                builder: (_) => const ScenarioSelectionScreen(),
+                              ),
                               (_) => false,
                             );
                           },
@@ -227,7 +257,9 @@ class _ScoreBadge extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: stars >= 3 ? AppColors.amber.withValues(alpha: 0.5) : AppColors.border,
+          color: stars >= 3
+              ? AppColors.amber.withValues(alpha: 0.5)
+              : AppColors.border,
         ),
         gradient: stars >= 3
             ? LinearGradient(
@@ -243,13 +275,19 @@ class _ScoreBadge extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            stars >= 3 ? '완벽한 대응! 🎉' : stars >= 2 ? '잘 하셨습니다 👍' : '아직 성장 중... 💪',
+            stars >= 3
+                ? '완벽한 대응! 🎉'
+                : stars >= 2
+                ? '잘 하셨습니다 👍'
+                : '아직 성장 중... 💪',
             style: textTheme.titleLarge,
           ),
           const SizedBox(height: 4),
           Text(
             '총점 ${score.totalScore}/100점',
-            style: textTheme.labelMedium?.copyWith(color: AppColors.textSecondary),
+            style: textTheme.labelMedium?.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
           const SizedBox(height: 16),
           Row(
@@ -319,19 +357,29 @@ class _AnalysisSection extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Text(content,
-              style: textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textPrimary, height: 1.6)),
+          Text(
+            content,
+            style: textTheme.bodyMedium?.copyWith(
+              color: AppColors.textPrimary,
+              height: 1.6,
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _EvidenceSection extends StatelessWidget {
-  const _EvidenceSection({required this.hints});
+class _EvidenceJudgmentSection extends StatelessWidget {
+  const _EvidenceJudgmentSection({
+    required this.validSubmitted,
+    required this.invalidSubmitted,
+    required this.missed,
+  });
 
-  final List<String> hints;
+  final List<SavedEvidence> validSubmitted;
+  final List<SavedEvidence> invalidSubmitted;
+  final List<EvidenceItem> missed;
 
   @override
   Widget build(BuildContext context) {
@@ -350,36 +398,107 @@ class _EvidenceSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, color: AppColors.alarm, size: 20),
+              const Icon(
+                Icons.fact_check_rounded,
+                color: AppColors.amber,
+                size: 20,
+              ),
               const SizedBox(width: 8),
-              Text('이번 시나리오의 전체 단서',
-                  style: textTheme.labelLarge?.copyWith(color: AppColors.alarm)),
+              Text(
+                '제출한 증거 판정',
+                style: textTheme.labelLarge?.copyWith(color: AppColors.amber),
+              ),
             ],
           ),
           const SizedBox(height: 14),
-          ...hints.map(
-            (hint) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    margin: const EdgeInsets.only(top: 6),
-                    width: 6,
-                    height: 6,
-                    decoration: const BoxDecoration(
-                      color: AppColors.alarm,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(hint,
-                        style:
-                            textTheme.bodyMedium?.copyWith(color: AppColors.textPrimary)),
-                  ),
-                ],
+          for (final e in validSubmitted)
+            _JudgmentRow(
+              valid: true,
+              text: e.sourceText,
+              reason: '"${e.matchedLabel}" 항목의 유효한 증거로 인정됩니다.',
+            ),
+          for (final e in invalidSubmitted)
+            _JudgmentRow(
+              valid: false,
+              text: e.sourceText,
+              reason: '정황일 뿐 단독 증거로 보기 어렵습니다.',
+            ),
+          if (validSubmitted.isEmpty && invalidSubmitted.isEmpty)
+            Text(
+              '제출한 증거가 없어 판정할 항목이 없습니다.',
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppColors.textSecondary,
               ),
+            ),
+          if (missed.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            const Divider(color: AppColors.border),
+            const SizedBox(height: 10),
+            Text(
+              '놓친 증거',
+              style: textTheme.labelMedium?.copyWith(color: AppColors.alarm),
+            ),
+            const SizedBox(height: 8),
+            for (final item in missed)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  '• ${item.label}',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _JudgmentRow extends StatelessWidget {
+  const _JudgmentRow({
+    required this.valid,
+    required this.text,
+    required this.reason,
+  });
+
+  final bool valid;
+  final String text;
+  final String reason;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final color = valid ? AppColors.safe : AppColors.alarm;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            valid ? Icons.check_circle_rounded : Icons.cancel_rounded,
+            color: color,
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '"$text"',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  reason,
+                  style: textTheme.bodySmall?.copyWith(color: color),
+                ),
+              ],
             ),
           ),
         ],
@@ -408,8 +527,10 @@ class _TipSection extends StatelessWidget {
             children: [
               const Icon(Icons.shield_rounded, color: AppColors.safe, size: 20),
               const SizedBox(width: 8),
-              Text('실전 대응 팁',
-                  style: textTheme.labelLarge?.copyWith(color: AppColors.safe)),
+              Text(
+                '실전 대응 팁',
+                style: textTheme.labelLarge?.copyWith(color: AppColors.safe),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -429,7 +550,11 @@ class _TipSection extends StatelessWidget {
 }
 
 class _XpBar extends StatefulWidget {
-  const _XpBar({required this.xp, required this.levelLabel, required this.level});
+  const _XpBar({
+    required this.xp,
+    required this.levelLabel,
+    required this.level,
+  });
 
   final int xp;
   final String levelLabel;
@@ -447,10 +572,14 @@ class _XpBarState extends State<_XpBar> with SingleTickerProviderStateMixin {
   void initState() {
     super.initState();
     _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1200));
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
     final progressWithinLevel = (widget.xp % 1000) / 1000;
-    _anim = Tween<double>(begin: 0, end: progressWithinLevel)
-        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+    _anim = Tween<double>(
+      begin: 0,
+      end: progressWithinLevel,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) _ctrl.forward();
     });
@@ -472,10 +601,16 @@ class _XpBarState extends State<_XpBar> with SingleTickerProviderStateMixin {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Lv.${widget.level} ${widget.levelLabel}',
-                style: textTheme.labelMedium?.copyWith(color: AppColors.textSecondary)),
-            Text('누적 ${widget.xp} XP',
-                style: textTheme.labelMedium?.copyWith(color: AppColors.amber)),
+            Text(
+              'Lv.${widget.level} ${widget.levelLabel}',
+              style: textTheme.labelMedium?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            Text(
+              '누적 ${widget.xp} XP',
+              style: textTheme.labelMedium?.copyWith(color: AppColors.amber),
+            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -518,8 +653,8 @@ class _StageProgressBar extends StatelessWidget {
                 color: active
                     ? AppColors.amber
                     : filled
-                        ? AppColors.safe
-                        : AppColors.border,
+                    ? AppColors.safe
+                    : AppColors.border,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),

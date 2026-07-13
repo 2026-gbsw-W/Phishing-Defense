@@ -11,11 +11,28 @@ class ChatChoice {
   final ChatBranch branch;
 }
 
+enum EvidenceSource { sms, chat }
+
 class EvidenceItem {
-  const EvidenceItem({required this.label, required this.importance});
+  const EvidenceItem({
+    required this.label,
+    required this.importance,
+    required this.source,
+  });
 
   final String label;
   final int importance; // 1(낮음) ~ 5(매우 중요)
+  final EvidenceSource source;
+}
+
+/// AI(또는 SMS)가 실제로 한 말 한 줄. [evidenceLabel]이 있으면 사용자가 이 줄을
+/// "증거로 저장"했을 때 어떤 [EvidenceItem]에 해당하는지 나타낸다. null이면
+/// 실제로는 증거가 되지 않는 대사(정황일 뿐이거나 단순 반응)라는 뜻이다.
+class AiLine {
+  const AiLine(this.text, {this.evidenceLabel});
+
+  final String text;
+  final String? evidenceLabel;
 }
 
 class Scenario {
@@ -47,9 +64,9 @@ class Scenario {
 
   final String senderName;
   final String smsContent;
-  final String aiOpener;
-  final List<String> aiResponses;
-  final String aiFallbackResponse;
+  final AiLine aiOpener;
+  final List<AiLine> aiResponses;
+  final AiLine aiFallbackResponse;
   final List<String> aiSuspicionResponses;
   final List<String> aiRefusalResponses;
   final List<List<ChatChoice>> chatChoices;
@@ -64,7 +81,9 @@ class Scenario {
     return variants[index];
   }
 
-  String suspicionResponseFor(int turnIndex) => _pick(aiSuspicionResponses, turnIndex);
+  String suspicionResponseFor(int turnIndex) =>
+      _pick(aiSuspicionResponses, turnIndex);
 
-  String refusalResponseFor(int turnIndex) => _pick(aiRefusalResponses, turnIndex);
+  String refusalResponseFor(int turnIndex) =>
+      _pick(aiRefusalResponses, turnIndex);
 }
