@@ -43,14 +43,11 @@ class _ResultScreenState extends State<ResultScreen>
     final report = await GameApi.getReport(widget.recordId);
 
     try {
-      final claim = await GameApi.claimReport(widget.recordId);
-      GameProgress.instance.recordCompletion(
-        scenarioId: widget.recordId.toString(),
-        xpEarned: claim.xpAdded,
-      );
+      await GameApi.claimReport(widget.recordId);
     } catch (_) {
       // 이미 보상을 수령한 플레이(재방문 등)일 수 있다 — 리포트 표시는 계속 진행한다.
     }
+    await GameProgress.instance.syncFromServer();
 
     if (mounted) {
       Future.delayed(const Duration(milliseconds: 400), () {

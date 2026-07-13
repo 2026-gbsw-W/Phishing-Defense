@@ -33,6 +33,7 @@ class _ScenarioSelectionScreenState extends State<ScenarioSelectionScreen> {
   void initState() {
     super.initState();
     _future = _loadChaptersWithStages();
+    GameProgress.instance.syncFromServer();
   }
 
   Future<List<_ChapterWithStages>> _loadChaptersWithStages() async {

@@ -11,6 +11,8 @@ import '../models/game/report_claim_result.dart';
 import '../models/game/scenario_report.dart';
 import '../models/game/scenario_start.dart';
 import '../models/game/stage.dart';
+import '../models/game/user_profile.dart';
+import '../models/game/user_statistics.dart';
 import 'auth_api.dart';
 import 'session_store.dart';
 
@@ -183,5 +185,15 @@ class GameApi {
     return ReportClaimResult.fromJson(
       _decode(response) as Map<String, dynamic>,
     );
+  }
+
+  static Future<UserProfile> getMyProfile() async {
+    final response = await _get('/api/v1/users/me');
+    return UserProfile.fromJson(_decode(response) as Map<String, dynamic>);
+  }
+
+  static Future<UserStatistics> getMyStatistics() async {
+    final response = await _get('/api/v1/users/me/statistics');
+    return UserStatistics.fromJson(_decode(response) as Map<String, dynamic>);
   }
 }
