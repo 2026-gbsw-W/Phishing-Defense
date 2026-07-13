@@ -37,22 +37,54 @@ class GameApi {
     };
   }
 
+  /// accessToken 만료(401)로 요청이 실패하면 refreshToken으로 세션을 한 번
+  /// 갱신하고 같은 요청을 재시도한다. 갱신도 실패하면 세션을 지우고 그대로
+  /// 401 취급한다.
+  static Future<bool> _tryRefreshSession() async {
+    final session = await SessionStore.load();
+    if (session == null) return false;
+    try {
+      final refreshed = await AuthApi.refresh(
+        refreshToken: session.refreshToken,
+      );
+      await SessionStore.save(refreshed);
+      return true;
+    } catch (_) {
+      await SessionStore.clear();
+      return false;
+    }
+  }
+
   static Future<http.Response> _get(String path) async {
-    final response = await http
-        .get(Uri.parse('$kApiBaseUrl$path'), headers: await _authHeaders())
+    final uri = Uri.parse('$kApiBaseUrl$path');
+    var response = await http
+        .get(uri, headers: await _authHeaders())
         .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 401 && await _tryRefreshSession()) {
+      response = await http
+          .get(uri, headers: await _authHeaders())
+          .timeout(const Duration(seconds: 10));
+    }
+
     _checkStatus(response);
     return response;
   }
 
   static Future<http.Response> _post(String path, [Object? body]) async {
-    final response = await http
-        .post(
-          Uri.parse('$kApiBaseUrl$path'),
-          headers: await _authHeaders(),
-          body: body == null ? null : jsonEncode(body),
-        )
+    final uri = Uri.parse('$kApiBaseUrl$path');
+    final encodedBody = body == null ? null : jsonEncode(body);
+
+    var response = await http
+        .post(uri, headers: await _authHeaders(), body: encodedBody)
         .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 401 && await _tryRefreshSession()) {
+      response = await http
+          .post(uri, headers: await _authHeaders(), body: encodedBody)
+          .timeout(const Duration(seconds: 10));
+    }
+
     _checkStatus(response);
     return response;
   }

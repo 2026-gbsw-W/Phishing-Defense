@@ -105,4 +105,22 @@ class AuthApi {
 
     throw AuthException('회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.');
   }
+
+  static Future<AuthSession> refresh({required String refreshToken}) async {
+    final response = await http
+        .post(
+          Uri.parse('$kApiBaseUrl/api/v1/auth/refresh'),
+          headers: const {'Content-Type': 'application/json'},
+          body: jsonEncode({'refreshToken': refreshToken}),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      return AuthSession.fromJson(
+        jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
+      );
+    }
+
+    throw AuthException('세션이 만료되었습니다. 다시 로그인해주세요.');
+  }
 }
