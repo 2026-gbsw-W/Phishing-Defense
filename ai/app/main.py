@@ -2,7 +2,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi import UploadFile, File
 from fastapi.responses import FileResponse
 from domains.voice.stt_service import transcribe_audio
-from domains.voice.tts_service import synthesize_speech
+from domains.voice.tts_service import (
+    synthesize_speech,
+    VOICE_MAP
+)
 import shutil
 import os
 from pydantic import BaseModel
@@ -15,6 +18,7 @@ from urllib.parse import quote
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from fastapi import WebSocket, WebSocketDisconnect
+from domains.voice.tts_service import VOICE_MAP
 
 
 app = FastAPI()
@@ -308,8 +312,11 @@ def voice_chat(
     ))
 
     output_path = f"response_{uuid.uuid4()}.mp3"
-    synthesize_speech(chat_result["answer"], output_path)
-
+    synthesize_speech(
+        chat_result["answer"],
+        output_path,
+        scenario_type
+    )
     return FileResponse(
             output_path,
             media_type="audio/mpeg",
@@ -327,6 +334,13 @@ async def voice_call(
 ):
 
     await websocket.accept()
+
+    if scenario_type not in VOICE_MAP:
+        await websocket.close(
+            code=1008,
+            reason="지원하지 않는 시나리오"
+        )
+    return
 
     # 세션 생성
     session_id = str(uuid.uuid4())
@@ -351,7 +365,8 @@ async def voice_call(
         try:
             synthesize_speech(
                 first_response["answer"],
-                first_audio
+                first_audio,
+                scenario_type
             )
 
             with open(first_audio, "rb") as f:
@@ -416,7 +431,8 @@ async def voice_call(
 
                 synthesize_speech(
                     ai_text,
-                    output_path
+                    output_path,
+                    scenario_type
                 )
 
                 with open(output_path, "rb") as f:

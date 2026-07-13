@@ -1,55 +1,56 @@
 from elevenlabs.client import ElevenLabs
 from core.config import settings
-import os
 
 _client = ElevenLabs(
     api_key=settings.ELEVENLABS_API_KEY
 )
 
-MOCK_TTS = False
+
+VOICE_MAP = {
+    "prosecutor": {
+        "voice_id": "21m00Tcm4TlvDq8ikWAM",
+        "description": "권위적인 검찰 사칭 목소리"
+    },
+
+    "bank": {
+        "voice_id": "EXAVITQu4vr4xnSDxMaL",
+        "description": "차분한 금융기관 직원 목소리"
+    },
+
+    "family": {
+        "voice_id": "MF3mGyEYCl7XYWbV9V6O",
+        "description": "불안한 가족 사칭 목소리"
+    }
+}
 
 
-def synthesize_speech(text: str, output_path: str) -> str:
+def synthesize_speech(
+    text: str,
+    output_path: str,
+    scenario_type: str = "prosecutor"
+) -> str:
 
-    # 개발용 테스트 모드
-    if MOCK_TTS:
-        with open(output_path, "wb") as f:
-            f.write(b"")
+    voice_config = VOICE_MAP.get(
+        scenario_type,
+        VOICE_MAP["prosecutor"]
+    )
 
-        print(f"[MOCK TTS] 생성 안 함: {text[:50]}...")
-        return output_path
-
+    voice_id = voice_config["voice_id"]
 
     try:
-        # ElevenLabs 실제 음성 생성
         audio = _client.text_to_speech.convert(
-            voice_id="21m00Tcm4TlvDq8ikWAM",
+            voice_id=voice_id,
             text=text,
             model_id="eleven_multilingual_v2",
             output_format="mp3_44100_128"
         )
 
-        # mp3 저장
         with open(output_path, "wb") as f:
             for chunk in audio:
                 f.write(chunk)
 
-
-        # 파일 생성 확인
-        if not os.path.exists(output_path):
-            raise Exception("음성 파일 생성 실패")
-
-        file_size = os.path.getsize(output_path)
-
-        if file_size == 0:
-            raise Exception("생성된 음성 파일이 비어있음")
-
-
-        print(f"[TTS SUCCESS] {output_path} ({file_size} bytes)")
-
         return output_path
 
-
     except Exception as e:
-        print(f"[TTS ERROR] {e}")
-        raise e
+        print("TTS 오류:", e)
+        raise
