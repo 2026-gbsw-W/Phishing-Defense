@@ -205,7 +205,6 @@ GET    /api/v1/users/me/inventory           인벤토리
 ### Leaderboard API
 ```
 GET    /api/v1/leaderboard                  전체 리더보드
-GET    /api/v1/leaderboard?scope=friends    친구 리더보드
 GET    /api/v1/leaderboard/category         카테고리별 리더보드
 ```
 
