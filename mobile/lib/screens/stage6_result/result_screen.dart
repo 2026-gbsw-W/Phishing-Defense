@@ -9,6 +9,13 @@ import '../../services/game_progress.dart';
 import '../../theme/app_colors.dart';
 import '../scenario_selection/scenario_selection_screen.dart';
 
+int _starsFromScore(int score) {
+  if (score >= 80) return 3;
+  if (score >= 60) return 2;
+  if (score >= 40) return 1;
+  return 0;
+}
+
 class ResultScreen extends StatefulWidget {
   const ResultScreen({super.key, required this.recordId});
 
@@ -58,7 +65,7 @@ class _ResultScreenState extends State<ResultScreen>
       Future.delayed(const Duration(milliseconds: 400), () {
         if (mounted) {
           _scaleCtrl.forward();
-          if (report.starRating >= 2) _confetti.play();
+          if (_starsFromScore(report.accuracyScore) >= 2) _confetti.play();
         }
       });
     }
@@ -211,7 +218,7 @@ class _ScoreBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final stars = report.starRating;
+    final stars = _starsFromScore(report.accuracyScore);
 
     return Container(
       width: double.infinity,
@@ -242,6 +249,8 @@ class _ScoreBadge extends StatelessWidget {
                 ? '완벽한 대응!'
                 : stars >= 2
                 ? '잘 하셨습니다'
+                : stars >= 1
+                ? '조금 더 노력해요'
                 : '아직 성장 중...',
             style: textTheme.titleLarge,
           ),
