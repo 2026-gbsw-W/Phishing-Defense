@@ -1,42 +1,74 @@
 import { apiClient } from './api'
-import type { AuthSession, LoginPayload, SignupPayload, User } from '@/types/auth'
+import type { AuthSession, LoginPayload, SignupPayload } from '@/types/auth'
 
+/** Wire shape of Spring's `AuthResponse` (POST /auth/signup, /auth/login). No XP fields. */
 interface AuthWireResponse {
-  token: string
-  user_id: number
+  accessToken: string
+  tokenType: string
+  expiresIn: number
+  userId: number
+  email: string
   nickname: string
   level: number
-  xp: number
 }
 
+/** Wire shape of Spring's `UserProfileResponse` (GET /users/me). */
 interface UserWireResponse {
-  user_id: number
+  userId: number
+  email: string
   nickname: string
+  bio: string | null
+  profileImageUrl: string | null
   level: number
-  xp: number
+  currentXp: number
+  totalXp: number
 }
 
-function toSession(body: AuthWireResponse): AuthSession {
-  return { token: body.token, userId: body.user_id, nickname: body.nickname, level: body.level, totalXp: body.xp }
+/** What signup/login give us: identity + token, but no XP/bio/image yet. */
+export type AuthResult = Pick<AuthSession, 'token' | 'userId' | 'email' | 'nickname' | 'level'>
+
+/** Full profile as returned by GET /users/me. */
+export type UserProfile = Pick<
+  AuthSession,
+  'userId' | 'email' | 'nickname' | 'bio' | 'profileImageUrl' | 'level' | 'currentXp' | 'totalXp'
+>
+
+function toAuthResult(body: AuthWireResponse): AuthResult {
+  return {
+    token: body.accessToken,
+    userId: body.userId,
+    email: body.email,
+    nickname: body.nickname,
+    level: body.level,
+  }
+}
+
+function toUserProfile(body: UserWireResponse): UserProfile {
+  return {
+    userId: body.userId,
+    email: body.email,
+    nickname: body.nickname,
+    bio: body.bio,
+    profileImageUrl: body.profileImageUrl,
+    level: body.level,
+    currentXp: body.currentXp,
+    totalXp: body.totalXp,
+  }
 }
 
 export const authService = {
-  async signup(payload: SignupPayload): Promise<AuthSession> {
+  async signup(payload: SignupPayload): Promise<AuthResult> {
     const { data } = await apiClient.post<AuthWireResponse>('/api/v1/auth/signup', payload)
-    return toSession(data)
+    return toAuthResult(data)
   },
 
-  async login(payload: LoginPayload): Promise<AuthSession> {
+  async login(payload: LoginPayload): Promise<AuthResult> {
     const { data } = await apiClient.post<AuthWireResponse>('/api/v1/auth/login', payload)
-    return toSession(data)
+    return toAuthResult(data)
   },
 
-  async logout(): Promise<void> {
-    await apiClient.post('/api/v1/auth/logout')
-  },
-
-  async fetchMe(): Promise<Pick<User, 'userId' | 'nickname' | 'level' | 'totalXp'>> {
+  async fetchMe(): Promise<UserProfile> {
     const { data } = await apiClient.get<UserWireResponse>('/api/v1/users/me')
-    return { userId: data.user_id, nickname: data.nickname, level: data.level, totalXp: data.xp }
+    return toUserProfile(data)
   },
 }

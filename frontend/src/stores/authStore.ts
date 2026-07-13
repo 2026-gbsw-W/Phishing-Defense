@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { authService } from '@/services/authService'
+import type { AuthResult, UserProfile } from '@/services/authService'
 import { setAuthToken } from '@/services/api'
 import { getLevelInfo } from '@/utils/levels'
 import { ApiError } from '@/types/api'
@@ -18,9 +19,31 @@ interface AuthState {
   updateXp: (newTotalXp: number) => void
 }
 
-function persistSession(session: AuthSession) {
-  setAuthToken(session.token)
-  localStorage.setItem(TOKEN_KEY, session.token)
+function buildSession(auth: AuthResult, profile: UserProfile): AuthSession {
+  return {
+    token: auth.token,
+    userId: auth.userId,
+    email: auth.email,
+    nickname: auth.nickname,
+    level: auth.level,
+    currentXp: profile.currentXp,
+    totalXp: profile.totalXp,
+    bio: profile.bio,
+    profileImageUrl: profile.profileImageUrl,
+  }
+}
+
+/** signup/login share this: exchange credentials for a token, then fetch the full profile. */
+async function authenticate(request: () => Promise<AuthResult>): Promise<AuthSession> {
+  const auth = await request()
+  setAuthToken(auth.token)
+  try {
+    const profile = await authService.fetchMe()
+    return buildSession(auth, profile)
+  } catch (err) {
+    setAuthToken(null)
+    throw err
+  }
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -31,8 +54,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   async signup(payload) {
     set({ isLoading: true, error: null })
     try {
-      const session = await authService.signup(payload)
-      persistSession(session)
+      const session = await authenticate(() => authService.signup(payload))
+      localStorage.setItem(TOKEN_KEY, session.token)
       set({ session, isLoading: false })
     } catch (err) {
       set({ isLoading: false, error: err instanceof ApiError ? err.message : '회원가입에 실패했습니다.' })
@@ -42,8 +65,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   async login(payload) {
     set({ isLoading: true, error: null })
     try {
-      const session = await authService.login(payload)
-      persistSession(session)
+      const session = await authenticate(() => authService.login(payload))
+      localStorage.setItem(TOKEN_KEY, session.token)
       set({ session, isLoading: false })
     } catch (err) {
       set({ isLoading: false, error: err instanceof ApiError ? err.message : '로그인에 실패했습니다.' })
@@ -61,8 +84,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!token) return
     setAuthToken(token)
     try {
-      const user = await authService.fetchMe()
-      set({ session: { token, userId: user.userId, nickname: user.nickname, level: user.level, totalXp: user.totalXp } })
+      const profile = await authService.fetchMe()
+      set({
+        session: {
+          token,
+          userId: profile.userId,
+          email: profile.email,
+          nickname: profile.nickname,
+          level: profile.level,
+          currentXp: profile.currentXp,
+          totalXp: profile.totalXp,
+          bio: profile.bio,
+          profileImageUrl: profile.profileImageUrl,
+        },
+      })
     } catch {
       setAuthToken(null)
       localStorage.removeItem(TOKEN_KEY)

@@ -11,7 +11,8 @@ describe('auth mock handlers', () => {
     })
     expect(res.status).toBe(201)
     const body = await res.json()
-    expect(body.token).toMatch(/^mock-jwt\./)
+    expect(body.accessToken).toMatch(/^mock-jwt\./)
+    expect(body.tokenType).toBe('Bearer')
     expect(body.nickname).toBe('피싱헌터')
   })
 
@@ -57,14 +58,19 @@ describe('auth mock handlers', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: 'me@test.com', password: 'pw123456', nickname: '헌터' }),
     })
-    const { token } = await signup.json()
+    const { accessToken } = await signup.json()
 
     const res = await fetch(`${BASE}/users/me`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${accessToken}` },
     })
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.nickname).toBe('헌터')
+    expect(body.email).toBe('me@test.com')
+    expect(body.currentXp).toBe(0)
+    expect(body.totalXp).toBe(0)
+    expect(body.bio).toBeNull()
+    expect(body.profileImageUrl).toBeNull()
   })
 
   it('rejects /users/me without a valid token', async () => {

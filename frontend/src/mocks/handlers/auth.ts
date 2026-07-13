@@ -16,11 +16,13 @@ export const authHandlers = [
     const user = mockDb.createUser(email, password, nickname)
     return HttpResponse.json(
       {
-        token: tokenForUser(user.userId),
-        user_id: user.userId,
+        accessToken: tokenForUser(user.userId),
+        tokenType: 'Bearer',
+        expiresIn: 3600,
+        userId: user.userId,
+        email: user.email,
         nickname: user.nickname,
         level: user.level,
-        xp: user.totalXp,
       },
       { status: 201 },
     )
@@ -33,16 +35,14 @@ export const authHandlers = [
       return HttpResponse.json({ message: '이메일 또는 비밀번호가 올바르지 않습니다.' }, { status: 401 })
     }
     return HttpResponse.json({
-      token: tokenForUser(user.userId),
-      user_id: user.userId,
+      accessToken: tokenForUser(user.userId),
+      tokenType: 'Bearer',
+      expiresIn: 3600,
+      userId: user.userId,
+      email: user.email,
       nickname: user.nickname,
       level: user.level,
-      xp: user.totalXp,
     })
-  }),
-
-  http.post(`${BASE}/auth/logout`, () => {
-    return HttpResponse.json({ success: true })
   }),
 
   http.get(`${BASE}/users/me`, ({ request }) => {
@@ -52,10 +52,14 @@ export const authHandlers = [
       return HttpResponse.json({ message: '인증이 필요합니다.' }, { status: 401 })
     }
     return HttpResponse.json({
-      user_id: user.userId,
+      userId: user.userId,
+      email: user.email,
       nickname: user.nickname,
+      bio: user.bio,
+      profileImageUrl: user.profileImageUrl,
       level: user.level,
-      xp: user.totalXp,
+      currentXp: user.currentXp,
+      totalXp: user.totalXp,
     })
   }),
 ]

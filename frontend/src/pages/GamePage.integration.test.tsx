@@ -42,9 +42,13 @@ describe('GamePage integration — full Chapter 1 / Scenario 101 playthrough', (
         session: {
           token: tokenForUser(user.userId),
           userId: user.userId,
+          email: user.email,
           nickname: user.nickname,
           level: 1,
+          currentXp: 0,
           totalXp: 0,
+          bio: null,
+          profileImageUrl: null,
         },
       })
 

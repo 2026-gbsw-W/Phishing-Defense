@@ -9,7 +9,7 @@ async function setup() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: `chat${Math.random()}@test.com`, password: 'pw123456', nickname: '헌터' }),
   })
-  const { token } = await signup.json()
+  const { accessToken: token } = await signup.json()
   const start = await fetch(`${BASE}/scenarios/101/start`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
   const { record_id } = await start.json()
   return { token, recordId: record_id as number }

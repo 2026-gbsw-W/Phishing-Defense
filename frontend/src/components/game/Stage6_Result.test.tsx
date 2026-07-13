@@ -69,9 +69,13 @@ describe('Stage6_Result', () => {
       session: {
         token: tokenForUser(user.userId),
         userId: user.userId,
+        email: user.email,
         nickname: user.nickname,
         level: 1,
+        currentXp: 0,
         totalXp: 0,
+        bio: null,
+        profileImageUrl: null,
       },
     })
     const onClaimed = vi.fn()

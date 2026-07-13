@@ -6,7 +6,10 @@ export interface MockUserRecord {
   email: string
   password: string
   nickname: string
+  bio: string | null
+  profileImageUrl: string | null
   level: number
+  currentXp: number
   totalXp: number
   coins: number
   hints: number
@@ -60,7 +63,10 @@ export const mockDb = {
       email,
       password,
       nickname,
+      bio: null,
+      profileImageUrl: null,
       level: 1,
+      currentXp: 0,
       totalXp: 0,
       coins: 0,
       hints: 3,

@@ -9,7 +9,7 @@ async function signupAndGetToken(email: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password: 'pw123456', nickname: '헌터' }),
   })
-  return (await res.json()).token as string
+  return (await res.json()).accessToken as string
 }
 
 async function markEvidence(token: string, recordId: number, turn: number, value: string) {
