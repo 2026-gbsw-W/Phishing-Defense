@@ -57,13 +57,19 @@ class GameApi {
     }
   }
 
+  /// Spring Security가 이 백엔드에서는 인증 실패(토큰 없음/만료/무효)를
+  /// 커스텀 엔트리포인트 없이 기본 처리하기 때문에 401이 아니라 403으로
+  /// 내려온다. 그래서 재시도 대상 상태코드에 403도 포함한다.
+  static bool _isAuthFailure(int statusCode) =>
+      statusCode == 401 || statusCode == 403;
+
   static Future<http.Response> _get(String path) async {
     final uri = Uri.parse('$kApiBaseUrl$path');
     var response = await http
         .get(uri, headers: await _authHeaders())
         .timeout(const Duration(seconds: 10));
 
-    if (response.statusCode == 401 && await _tryRefreshSession()) {
+    if (_isAuthFailure(response.statusCode) && await _tryRefreshSession()) {
       response = await http
           .get(uri, headers: await _authHeaders())
           .timeout(const Duration(seconds: 10));
@@ -81,7 +87,7 @@ class GameApi {
         .post(uri, headers: await _authHeaders(), body: encodedBody)
         .timeout(const Duration(seconds: 10));
 
-    if (response.statusCode == 401 && await _tryRefreshSession()) {
+    if (_isAuthFailure(response.statusCode) && await _tryRefreshSession()) {
       response = await http
           .post(uri, headers: await _authHeaders(), body: encodedBody)
           .timeout(const Duration(seconds: 10));
@@ -93,7 +99,7 @@ class GameApi {
 
   static void _checkStatus(http.Response response) {
     if (response.statusCode >= 200 && response.statusCode < 300) return;
-    if (response.statusCode == 401) {
+    if (_isAuthFailure(response.statusCode)) {
       throw GameApiException('로그인이 만료되었습니다. 다시 로그인해주세요.');
     }
     if (response.statusCode == 409) {

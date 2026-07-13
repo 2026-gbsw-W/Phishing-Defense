@@ -7,7 +7,7 @@ import '../../services/game_progress.dart';
 import '../../services/session_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/scenario_card.dart';
+import '../../widgets/scenario_path.dart';
 import '../login/login_screen.dart';
 import '../stage1_sms/sms_screen.dart';
 
@@ -51,7 +51,9 @@ class _ScenarioSelectionScreenState extends State<ScenarioSelectionScreen> {
   }
 
   void _retry() {
-    setState(() => _future = _loadChaptersWithStages());
+    setState(() {
+      _future = _loadChaptersWithStages();
+    });
   }
 
   void _onStageSelected(Stage stage) {
@@ -59,6 +61,12 @@ class _ScenarioSelectionScreenState extends State<ScenarioSelectionScreen> {
       context,
       MaterialPageRoute(builder: (_) => SmsScreen(stage: stage)),
     );
+  }
+
+  void _onLockedTap() {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('이전 스테이지를 먼저 완료하세요.')));
   }
 
   Future<void> _logout() async {
@@ -108,6 +116,16 @@ class _ScenarioSelectionScreenState extends State<ScenarioSelectionScreen> {
             (sum, c) => sum + c.stages.length,
           );
 
+          final flatStages = [for (final entry in chapters) ...entry.stages];
+          final firstIncompleteIndex = flatStages.indexWhere(
+            (s) => !s.completed,
+          );
+          final unlockedThrough = firstIncompleteIndex == -1
+              ? flatStages.length - 1
+              : firstIncompleteIndex;
+          bool isUnlocked(Stage stage) =>
+              flatStages.indexOf(stage) <= unlockedThrough;
+
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
@@ -126,33 +144,16 @@ class _ScenarioSelectionScreenState extends State<ScenarioSelectionScreen> {
               ),
               const SizedBox(height: 24),
               _StatBar(totalStages: totalStages),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
               for (final entry in chapters) ...[
-                Text(entry.chapter.title, style: textTheme.titleMedium),
-                const SizedBox(height: 4),
-                Text(
-                  entry.chapter.description,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+                ChapterPathSection(
+                  chapter: entry.chapter,
+                  stages: entry.stages,
+                  isUnlocked: isUnlocked,
+                  onStageTap: _onStageSelected,
+                  onLockedTap: _onLockedTap,
                 ),
-                const SizedBox(height: 12),
-                if (entry.stages.isEmpty)
-                  Text(
-                    '준비 중입니다.',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  )
-                else
-                  for (final stage in entry.stages) ...[
-                    ScenarioCard(
-                      stage: stage,
-                      onTap: () => _onStageSelected(stage),
-                    ),
-                    const SizedBox(height: 14),
-                  ],
-                const SizedBox(height: 10),
+                const SizedBox(height: 24),
               ],
             ],
           );

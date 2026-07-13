@@ -6,6 +6,7 @@ class Stage {
     required this.initialMessage,
     required this.phishingType,
     required this.difficulty,
+    required this.completed,
   });
 
   factory Stage.fromJson(Map<String, dynamic> json) {
@@ -16,6 +17,7 @@ class Stage {
       initialMessage: json['initialMessage'] as String,
       phishingType: json['phishingType'] as String? ?? 'unknown',
       difficulty: json['difficulty'] as int? ?? 1,
+      completed: json['completed'] as bool? ?? false,
     );
   }
 
@@ -25,6 +27,7 @@ class Stage {
   final String initialMessage;
   final String phishingType;
   final int difficulty;
+  final bool completed;
 
   String get difficultyLabel {
     switch (difficulty) {
