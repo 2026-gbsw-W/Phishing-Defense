@@ -88,7 +88,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('📎 증거로 저장했습니다'),
+        content: Text('증거로 저장했습니다'),
         duration: Duration(seconds: 1),
       ),
     );
@@ -203,7 +203,7 @@ class _ChatScreenState extends State<ChatScreen> {
               child: Text(
                 '판단하기 →',
                 style: TextStyle(
-                  color: AppColors.amber,
+                  color: AppColors.alarm,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -247,25 +247,25 @@ class _ChatScreenState extends State<ChatScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
-                      color: AppColors.amber.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
+                      color: AppColors.alarm.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(4),
                       border: Border.all(
-                        color: AppColors.amber.withValues(alpha: 0.4),
+                        color: AppColors.alarm.withValues(alpha: 0.4),
                       ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Icon(
-                          Icons.lightbulb_rounded,
-                          color: AppColors.amber,
+                          Icons.arrow_forward_rounded,
+                          color: AppColors.alarm,
                           size: 16,
                         ),
                         const SizedBox(width: 8),
                         Text(
                           '피싱 여부를 판단할 준비가 됐다면 →',
                           style: Theme.of(context).textTheme.labelMedium
-                              ?.copyWith(color: AppColors.amber),
+                              ?.copyWith(color: AppColors.alarm),
                         ),
                       ],
                     ),
@@ -298,7 +298,7 @@ class _EvidenceTray extends StatelessWidget {
       color: AppColors.surface,
       child: Row(
         children: [
-          const Icon(Icons.bookmark_rounded, color: AppColors.amber, size: 16),
+          const Icon(Icons.bookmark_rounded, color: AppColors.alarm, size: 16),
           const SizedBox(width: 6),
           Text(
             '내 증거함 ($count개 저장됨)',
@@ -358,7 +358,7 @@ class _Bubble extends StatelessWidget {
                   vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: isUser ? AppColors.amber : AppColors.surface,
+                  color: isUser ? AppColors.alarm : AppColors.surface,
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(18),
                     topRight: const Radius.circular(18),
@@ -367,7 +367,7 @@ class _Bubble extends StatelessWidget {
                   ),
                   border: Border.all(
                     color: isSaved
-                        ? AppColors.amber
+                        ? AppColors.alarm
                         : isUser
                         ? Colors.transparent
                         : AppColors.border,
@@ -397,7 +397,7 @@ class _Bubble extends StatelessWidget {
                             msg.text,
                             style: textTheme.bodyMedium?.copyWith(
                               color: isUser
-                                  ? AppColors.background
+                                  ? AppColors.onAlarm
                                   : AppColors.textPrimary,
                               height: 1.5,
                             ),
@@ -410,17 +410,15 @@ class _Bubble extends StatelessWidget {
                           Icon(
                             Icons.bookmark_rounded,
                             size: 12,
-                            color: isUser
-                                ? AppColors.background
-                                : AppColors.amber,
+                            color: isUser ? AppColors.onAlarm : AppColors.alarm,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             '증거로 저장됨',
                             style: textTheme.labelSmall?.copyWith(
                               color: isUser
-                                  ? AppColors.background
-                                  : AppColors.amber,
+                                  ? AppColors.onAlarm
+                                  : AppColors.alarm,
                             ),
                           ),
                         ],
@@ -567,7 +565,7 @@ class _InputBar extends StatelessWidget {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
-                    borderSide: const BorderSide(color: AppColors.amber),
+                    borderSide: const BorderSide(color: AppColors.alarm),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 18,
@@ -583,14 +581,12 @@ class _InputBar extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: enabled ? AppColors.amber : AppColors.border,
+                  color: enabled ? AppColors.alarm : AppColors.border,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.send_rounded,
-                  color: enabled
-                      ? AppColors.background
-                      : AppColors.textSecondary,
+                  color: enabled ? AppColors.onAlarm : AppColors.textSecondary,
                   size: 20,
                 ),
               ),
@@ -622,7 +618,7 @@ class _StageProgressBar extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 2),
               decoration: BoxDecoration(
                 color: active
-                    ? AppColors.amber
+                    ? AppColors.alarm
                     : filled
                     ? AppColors.safe
                     : AppColors.border,

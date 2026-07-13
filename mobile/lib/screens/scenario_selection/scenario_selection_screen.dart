@@ -4,6 +4,7 @@ import '../../models/scenario.dart';
 import '../../models/scenario_data.dart';
 import '../../services/game_progress.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/scenario_card.dart';
 import '../stage1_sms/sms_screen.dart';
 
@@ -28,7 +29,7 @@ class ScenarioSelectionScreen extends StatelessWidget {
         children: [
           Text(
             '01 시나리오 선택',
-            style: textTheme.labelMedium?.copyWith(color: AppColors.amber),
+            style: textTheme.labelMedium?.copyWith(color: AppColors.alarm),
           ),
           const SizedBox(height: 8),
           Text('어떤 상황을 훈련해볼까요?', style: textTheme.headlineSmall),
@@ -66,7 +67,7 @@ class _StatBar extends StatelessWidget {
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(4),
             border: Border.all(color: AppColors.border),
           ),
           child: Row(
@@ -75,19 +76,19 @@ class _StatBar extends StatelessWidget {
               _StatItem(
                 label: '레벨',
                 value: 'Lv.${progress.level}',
-                color: AppColors.amber,
+                color: AppColors.alarm,
               ),
               Container(width: 1, height: 32, color: AppColors.border),
               _StatItem(
                 label: '총 XP',
                 value: '${progress.totalXp}',
-                color: AppColors.safe,
+                color: AppColors.textPrimary,
               ),
               Container(width: 1, height: 32, color: AppColors.border),
               _StatItem(
                 label: '완료',
                 value: '${progress.completedCount} / ${demoScenarios.length}',
-                color: AppColors.textSecondary,
+                color: AppColors.textPrimary,
               ),
             ],
           ),
@@ -114,7 +115,10 @@ class _StatItem extends StatelessWidget {
 
     return Column(
       children: [
-        Text(value, style: textTheme.titleLarge?.copyWith(color: color)),
+        Text(
+          value,
+          style: AppTheme.mono(textTheme.titleLarge?.copyWith(color: color)),
+        ),
         const SizedBox(height: 2),
         Text(
           label,

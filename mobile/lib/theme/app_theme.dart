@@ -6,23 +6,20 @@ import 'app_colors.dart';
 class AppTheme {
   AppTheme._();
 
+  // 디자인 시스템 규칙: 본문/제목은 Noto Sans KR. IBM Plex Mono는 한글 문장에
+  // 쓰면 자간이 벌어져 보이므로 전역 테마에는 넣지 않고, 순수 숫자·영문
+  // 표기(스테이지 번호, XP, 타이머 등)에만 [AppTheme.mono]로 개별 적용한다.
   static TextTheme _textTheme(TextTheme base) {
-    final numeric = GoogleFonts.spaceGroteskTextTheme(base);
-    final body = GoogleFonts.notoSansKrTextTheme(base);
-
-    return body.copyWith(
-      displayLarge: numeric.displayLarge,
-      displayMedium: numeric.displayMedium,
-      displaySmall: numeric.displaySmall,
-      headlineLarge: numeric.headlineLarge,
-      headlineMedium: numeric.headlineMedium,
-      headlineSmall: numeric.headlineSmall,
-    );
+    return GoogleFonts.notoSansKrTextTheme(base);
   }
+
+  /// 숫자/영문 라벨 전용(예: "01", "Lv.5", "12:34"). 한글 문장에는 쓰지 않는다.
+  static TextStyle mono(TextStyle? base) =>
+      GoogleFonts.ibmPlexMono(textStyle: base, fontWeight: FontWeight.w600);
 
   static ThemeData get dark {
     const colorScheme = ColorScheme.dark(
-      primary: AppColors.amber,
+      primary: AppColors.alarm,
       secondary: AppColors.safe,
       error: AppColors.alarm,
       surface: AppColors.surface,
@@ -48,17 +45,24 @@ class AppTheme {
         color: AppColors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(4),
           side: const BorderSide(color: AppColors.border),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.amber,
-          foregroundColor: AppColors.background,
+          backgroundColor: AppColors.alarm,
+          foregroundColor: AppColors.onAlarm,
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(100),
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(100),
           ),
         ),
       ),

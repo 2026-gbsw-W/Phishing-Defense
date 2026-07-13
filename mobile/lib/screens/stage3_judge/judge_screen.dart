@@ -79,7 +79,7 @@ class _JudgeScreenState extends State<JudgeScreen> {
             children: [
               Text(
                 '방금 나눈 대화를 떠올려 보세요.',
-                style: textTheme.labelLarge?.copyWith(color: AppColors.amber),
+                style: textTheme.labelLarge?.copyWith(color: AppColors.alarm),
               ),
               const SizedBox(height: 8),
               Text('이 메시지는 피싱인가요?', style: textTheme.headlineMedium),
@@ -102,14 +102,16 @@ class _JudgeScreenState extends State<JudgeScreen> {
               ],
               if (!_revealed) ...[
                 _JudgeButton(
-                  label: '🚨 피싱입니다',
+                  icon: Icons.report_rounded,
+                  label: '피싱입니다',
                   sublabel: '이것은 사기 시도입니다',
                   color: AppColors.alarm,
                   onTap: () => _judge(true),
                 ),
                 const SizedBox(height: 14),
                 _JudgeButton(
-                  label: '✅ 정상 메시지입니다',
+                  icon: Icons.check_circle_rounded,
+                  label: '정상 메시지입니다',
                   sublabel: '진짜 기관에서 보낸 메시지입니다',
                   color: AppColors.safe,
                   onTap: () => _judge(false),
@@ -174,7 +176,7 @@ class _HintList extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(4),
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
@@ -184,13 +186,13 @@ class _HintList extends StatelessWidget {
             children: [
               const Icon(
                 Icons.search_rounded,
-                color: AppColors.amber,
+                color: AppColors.alarm,
                 size: 18,
               ),
               const SizedBox(width: 8),
               Text(
                 revealed ? '발견된 피싱 단서' : '단서를 찾아보셨나요?',
-                style: textTheme.labelMedium?.copyWith(color: AppColors.amber),
+                style: textTheme.labelMedium?.copyWith(color: AppColors.alarm),
               ),
             ],
           ),
@@ -233,12 +235,14 @@ class _HintList extends StatelessWidget {
 
 class _JudgeButton extends StatelessWidget {
   const _JudgeButton({
+    required this.icon,
     required this.label,
     required this.sublabel,
     required this.color,
     required this.onTap,
   });
 
+  final IconData icon;
   final String label;
   final String sublabel;
   final Color color;
@@ -255,18 +259,30 @@ class _JudgeButton extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(4),
           border: Border.all(color: color.withValues(alpha: 0.5), width: 1.5),
         ),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: textTheme.titleMedium?.copyWith(color: color)),
-            const SizedBox(height: 4),
-            Text(
-              sublabel,
-              style: textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
+            Icon(icon, color: color, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: textTheme.titleMedium?.copyWith(color: color),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    sublabel,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -296,7 +312,7 @@ class _ResultReveal extends StatelessWidget {
             color: (correct ? AppColors.safe : AppColors.alarm).withValues(
               alpha: 0.1,
             ),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(4),
             border: Border.all(
               color: (correct ? AppColors.safe : AppColors.alarm).withValues(
                 alpha: 0.5,
@@ -306,8 +322,14 @@ class _ResultReveal extends StatelessWidget {
           ),
           child: Column(
             children: [
+              Icon(
+                correct ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                color: correct ? AppColors.safe : AppColors.alarm,
+                size: 32,
+              ),
+              const SizedBox(height: 8),
               Text(
-                correct ? '🎉 정확합니다!' : '😨 아쉽습니다!',
+                correct ? '정확합니다!' : '아쉽습니다!',
                 style: textTheme.headlineSmall?.copyWith(
                   color: correct ? AppColors.safe : AppColors.alarm,
                 ),
@@ -358,7 +380,7 @@ class _StageProgressBar extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 2),
               decoration: BoxDecoration(
                 color: active
-                    ? AppColors.amber
+                    ? AppColors.alarm
                     : filled
                     ? AppColors.safe
                     : AppColors.border,
