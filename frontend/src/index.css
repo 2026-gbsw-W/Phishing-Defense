@@ -390,3 +390,70 @@ h2 {
   text-decoration: none;
   font-weight: 700;
 }
+
+/* ---- ProgressBar component ---- */
+.progress-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.progress-bar-track {
+  flex: 1;
+  height: 4px;
+  background: var(--surface-2);
+  border-radius: 100px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+.progress-bar-fill {
+  height: 100%;
+  background: var(--alarm);
+  border-radius: 100px;
+  transition: width 0.3s ease;
+}
+.progress-bar-label {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* ---- GameLayout component ---- */
+.game-layout-container {
+  max-width: 448px;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.game-layout-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.game-layout-back-btn {
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.game-layout-back-btn:active {
+  opacity: 0.7;
+}
+.game-layout-header-content {
+  flex: 1;
+}
+.game-layout-title {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+.game-layout-main {
+  flex: 1;
+  padding: 16px;
+}

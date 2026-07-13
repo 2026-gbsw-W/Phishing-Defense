@@ -4,6 +4,7 @@ import { useChapters } from '@hooks/useChapters'
 import { useAuth } from '@hooks/useAuth'
 import { gameService } from '@services/gameService'
 import { getLevelInfo } from '@utils/levels'
+import { ProgressBar } from '@components/common/ProgressBar'
 import { ChapterCard } from './ChapterCard'
 
 export function Dashboard() {
@@ -30,15 +31,10 @@ export function Dashboard() {
           <p className="dashboard-nickname">{session.nickname}</p>
           <div className="dashboard-level-row">
             <span className="mono">
-              Lv.{levelInfo.level} · {levelInfo.currentLevelXp} XP
+              Lv.{levelInfo.level}
             </span>
           </div>
-          <div className="dashboard-level-bar">
-            <div
-              className="dashboard-level-bar-fill"
-              style={{ width: `${Math.min(levelInfo.progressRatio, 1) * 100}%` }}
-            />
-          </div>
+          <ProgressBar ratio={levelInfo.progressRatio} label={`${levelInfo.currentLevelXp} XP`} />
         </header>
 
         <section className="dashboard-section">
