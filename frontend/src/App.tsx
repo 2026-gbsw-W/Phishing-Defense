@@ -5,6 +5,7 @@ import { ProtectedRoute } from '@components/common/ProtectedRoute'
 import { LoginPage } from '@pages/LoginPage'
 import { SignupPage } from '@pages/SignupPage'
 import { HomePage } from '@pages/HomePage'
+import { GamePage } from '@pages/GamePage'
 import { NotFoundPage } from '@pages/NotFoundPage'
 
 const queryClient = new QueryClient()
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/signup" element={<SignupPage />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<HomePage />} />
+            <Route path="/game/:recordId" element={<GamePage />} />
           </Route>
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

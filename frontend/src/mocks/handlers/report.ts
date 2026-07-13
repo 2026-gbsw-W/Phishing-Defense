@@ -186,6 +186,10 @@ export const reportHandlers = [
     user.totalXp += report.xpEarned
     const newLevel = getLevelInfo(user.totalXp).level
     record.claimed = true
+    // A successful claim is the last step of a full playthrough — mark the
+    // record's stage as fully complete so GET .../status's is_completed
+    // (stage === 6 && claimed) reflects reality instead of staying stuck.
+    record.stage = 6
 
     return HttpResponse.json({
       xp_added: report.xpEarned,

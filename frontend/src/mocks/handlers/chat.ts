@@ -34,6 +34,11 @@ export const chatHandlers = [
 
     record.currentTurn = turn
     if (isPolice) record.policeTurnsCompleted = turn
+    // Keep record.stage in sync with the stage the client is actually chatting
+    // in — nothing else advances it during Stage 2/5 chat, which otherwise
+    // leaves the hint handler's HINT_TEXTS[record.stage] lookup stuck on stage
+    // 1 for the whole run. Math.max guards against ever regressing it backward.
+    record.stage = Math.max(record.stage, stage) as Stage
 
     return HttpResponse.json(
       {

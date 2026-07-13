@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { HINT_TEXTS } from '../scenarioData'
 
 const BASE = 'http://localhost:8080/api/v1'
 
@@ -51,6 +52,19 @@ describe('chat mock handlers', () => {
     const body = await res.json()
     expect(body.remaining_hints).toBe(2)
     expect(body.hint_text.length).toBeGreaterThan(0)
+  })
+
+  it('advances record.stage after a Stage-2 send so a subsequent hint returns the Stage-2 hint text', async () => {
+    const { token, recordId } = await setup()
+    await fetch(`${BASE}/chat/${recordId}/send`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: '누구세요?', stage: 2 }),
+    })
+    const res = await fetch(`${BASE}/chat/${recordId}/hint`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+    const body = await res.json()
+    expect(body.hint_text).toBe(HINT_TEXTS[2])
+    expect(body.hint_text).not.toBe(HINT_TEXTS[1])
   })
 
   describe('evidence/mark', () => {

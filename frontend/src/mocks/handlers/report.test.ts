@@ -167,6 +167,39 @@ describe('report mock handlers', () => {
       expect(mockDb.records.get(recordId)!.claimed).toBe(true)
     })
 
+    it('advances record.stage to 6 on a successful claim so status.is_completed becomes true', async () => {
+      // Deliberately does NOT force record.stage to 6 (unlike setupScoredRecord) so
+      // this test actually exercises the claim handler's own stage-advancement, not
+      // state a test helper set up in advance.
+      const token = await signupAndGetToken('report7@test.com')
+      const start = await fetch(`${BASE}/scenarios/101/start`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const { record_id: recordId } = await start.json()
+      const record = mockDb.records.get(recordId)!
+      record.judgmentCorrect = true
+      record.judgmentTurn = 1
+      record.policeTurnsCompleted = 1
+
+      const statusBefore = await fetch(`${BASE}/scenarios/${recordId}/status`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      expect((await statusBefore.json()).is_completed).toBe(false)
+
+      const claimRes = await fetch(`${BASE}/scenarios/${recordId}/report/claim`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      expect(claimRes.status).toBe(200)
+
+      const statusAfter = await fetch(`${BASE}/scenarios/${recordId}/status`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      expect((await statusAfter.json()).is_completed).toBe(true)
+    })
+
     it('returns 400 on a second claim attempt and does not double-award xp', async () => {
       const { token, recordId } = await setupScoredRecord('report5@test.com')
       const record = mockDb.records.get(recordId)!
