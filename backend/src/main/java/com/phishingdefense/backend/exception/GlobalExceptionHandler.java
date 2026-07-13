@@ -45,7 +45,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({UserNotFoundException.class, ProfileImageNotFoundException.class,
             ChapterNotFoundException.class, StageNotFoundException.class,
             ScenarioRecordNotFoundException.class, EvidenceNotFoundException.class,
-            AchievementNotFoundException.class, DailyMissionNotFoundException.class})
+            AchievementNotFoundException.class, DailyMissionNotFoundException.class,
+            TrainingSessionNotFoundException.class, TrainingResultNotFoundException.class})
     public ResponseEntity<ErrorResponse> handleNotFound(RuntimeException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ErrorResponse.of(HttpStatus.NOT_FOUND.value(), "NOT_FOUND", e.getMessage()));
