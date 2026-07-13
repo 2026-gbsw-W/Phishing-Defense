@@ -17,7 +17,6 @@
 | **증거 자동 추출** | ✅ | 중간 | 높음 | 정규식 + 키워드 (NER은 Phase 2) |
 | **동적 리포트** | ✅ | 중간 | 높음 | LLM 프롬프트 엔지니어링 |
 | **신고 프로세스** | ✅ | 낮음 | 높음 | Stage 2와 동일한 AI 호출 |
-| **리더보드** | ✅ | 낮음 | 매우높음 | DB 쿼리 최적화만 필요 |
 | **STT/TTS** | ⚠️ | 높음 | 중간 | Phase 2 이후 (선택) |
 | **국제화** | ✅ | 낮음 | 높음 | i18n 라이브러리 + 번역 |
 
@@ -33,7 +32,6 @@
 ✅ 레벨 & XP 시스템
 ✅ 별 평가 계산
 ✅ 업적 시스템
-✅ 기본 리더보드
 ✅ 출석 시스템
 ```
 
@@ -65,9 +63,8 @@ Frontend (React)
 ├─ 홈 대시보드: 8시간
 ├─ 게임플레이 UI (6 Stage): 24시간
 ├─ 통계/업적 화면: 8시간
-├─ 리더보드: 4시간
 └─ 반응형 디자인 & QA: 12시간
-총: 60시간 (~7-8일, 1명)
+총: 52시간 (~6-7일, 1명)
 
 Backend (Spring Boot)
 ├─ DB 설계 & 마이그레이션: 4시간
@@ -76,9 +73,8 @@ Backend (Spring Boot)
 ├─ AI 통합 (ChatGPT): 8시간
 ├─ 증거 추출 로직: 6시간
 ├─ 리포트 생성: 6시간
-├─ 리더보드 쿼리: 4시간
 └─ 테스트 & 배포: 8시간
-총: 60시간 (~7-8일, 1명)
+총: 52시간 (~6-7일, 1명)
 
 QA & 테스트: 16시간 (~2일, 1명)
 
@@ -674,22 +670,6 @@ CREATE TABLE attendance (
   FOREIGN KEY (user_id) REFERENCES users(user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
--- 12. PhishingIndex 테이블 (사용자 도감)
-CREATE TABLE phishing_index (
-  index_id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  user_id BIGINT NOT NULL,
-  
-  phishing_type VARCHAR(50) COMMENT 'family, delivery, bank, police, romance, etc',
-  variant_id INT COMMENT '같은 타입의 변형 번호',
-  variant_name VARCHAR(100),
-  
-  is_collected BOOLEAN DEFAULT FALSE,
-  collected_at TIMESTAMP,
-  
-  UNIQUE KEY unique_user_type_variant (user_id, phishing_type, variant_id),
-  FOREIGN KEY (user_id) REFERENCES users(user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
 ### 4.3 인덱스 전략
@@ -708,9 +688,6 @@ CREATE INDEX idx_evidence_record_type
 CREATE INDEX idx_daily_missions_user_date_completed 
   ON daily_missions(user_id, created_date, is_completed);
 
--- Leaderboard 쿼리 최적화
-CREATE INDEX idx_users_total_xp_level 
-  ON users(total_xp DESC, level DESC);
 ```
 
 ---
@@ -1017,39 +994,7 @@ GET /api/v1/users/me/inventory
   }
 ```
 
-### 5.4 Leaderboard API
-
-```
-GET /api/v1/leaderboard?scope=global&period=weekly&limit=100
-├─ scope: global, monthly
-├─ period: daily, weekly, monthly, all_time
-└─ 응답: [
-    {
-      rank: 1,
-      user_id: 123,
-      nickname: "피싱헌터",
-      xp: 50000,
-      level: 20,
-      avatar_url: "...",
-      is_current_user: false
-    },
-    ...
-    {
-      rank: 234,
-      user_id: 999,
-      nickname: "나",
-      xp: 2560,
-      level: 5,
-      is_current_user: true
-    }
-  ]
-
-GET /api/v1/leaderboard/category?category=family_phishing
-└─ category: family, delivery, bank, police 등
-└─ 응답: [ { rank, user_id, nickname, accuracy_score, attempts } ]
-```
-
-### 5.5 Mission API
+### 5.4 Mission API
 
 ```
 GET /api/v1/missions/daily
@@ -1181,10 +1126,6 @@ src/
 │  │  ├─ Statistics.tsx
 │  │  └─ AchievementsList.tsx
 │  │
-│  ├─ leaderboard/
-│  │  ├─ Leaderboard.tsx
-│  │  └─ LeaderboardRow.tsx
-│  │
 │  ├─ missions/
 │  │  ├─ DailyMissions.tsx
 │  │  └─ AttendanceCalendar.tsx
@@ -1230,7 +1171,6 @@ src/
 │  ├─ HomePage.tsx
 │  ├─ GamePage.tsx
 │  ├─ ProfilePage.tsx
-│  ├─ LeaderboardPage.tsx
 │  └─ NotFoundPage.tsx
 │
 ├─ App.tsx
@@ -1249,7 +1189,6 @@ src/main/java/com/phishing_defense/
 │  ├─ GameController.java
 │  ├─ ChatController.java
 │  ├─ UserController.java
-│  ├─ LeaderboardController.java
 │  ├─ MissionController.java
 │  └─ AchievementController.java
 │
@@ -1260,7 +1199,6 @@ src/main/java/com/phishing_defense/
 │  ├─ EvidenceExtractionService.java
 │  ├─ ReportGenerationService.java
 │  ├─ UserService.java
-│  ├─ LeaderboardService.java
 │  ├─ MissionService.java
 │  └─ AnalyticsService.java
 │
