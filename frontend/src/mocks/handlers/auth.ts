@@ -17,6 +17,7 @@ export const authHandlers = [
     return HttpResponse.json(
       {
         accessToken: tokenForUser(user.userId),
+        refreshToken: `mock-refresh.${user.userId}`,
         tokenType: 'Bearer',
         expiresIn: 3600,
         userId: user.userId,
@@ -36,6 +37,26 @@ export const authHandlers = [
     }
     return HttpResponse.json({
       accessToken: tokenForUser(user.userId),
+      refreshToken: `mock-refresh.${user.userId}`,
+      tokenType: 'Bearer',
+      expiresIn: 3600,
+      userId: user.userId,
+      email: user.email,
+      nickname: user.nickname,
+      level: user.level,
+    })
+  }),
+
+  http.post(`${BASE}/auth/refresh`, async ({ request }) => {
+    const { refreshToken } = (await request.json()) as { refreshToken: string }
+    const match = /^mock-refresh\.(\d+)$/.exec(refreshToken)
+    const user = match ? mockDb.users.get(Number(match[1])) : undefined
+    if (!user) {
+      return HttpResponse.json({ message: '유효하지 않은 리프레시 토큰입니다.' }, { status: 401 })
+    }
+    return HttpResponse.json({
+      accessToken: tokenForUser(user.userId),
+      refreshToken: `mock-refresh.${user.userId}`,
       tokenType: 'Bearer',
       expiresIn: 3600,
       userId: user.userId,

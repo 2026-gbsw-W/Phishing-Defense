@@ -2,11 +2,12 @@ import { useState, useEffect, useCallback } from 'react'
 import toast from 'react-hot-toast'
 import { chatService } from '@/services/chatService'
 import { ApiError } from '@/types/api'
-import type { ChatMessage, Stage } from '@/types/game'
+import type { ChatHistoryEntry, ExtractedEvidenceItem } from '@/types/game'
 
-export function useChat(recordId: number, stage: Stage) {
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+export function useChat(recordId: number) {
+  const [messages, setMessages] = useState<ChatHistoryEntry[]>([])
   const [isSending, setIsSending] = useState(false)
+  const [newlyExtractedEvidence, setNewlyExtractedEvidence] = useState<ExtractedEvidenceItem[]>([])
 
   useEffect(() => {
     chatService
@@ -21,23 +22,21 @@ export function useChat(recordId: number, stage: Stage) {
     async (text: string) => {
       setIsSending(true)
       try {
-        const result = await chatService.sendMessage(recordId, text, stage)
+        const result = await chatService.sendMessage(recordId, text)
         const history = await chatService.getHistory(recordId)
         setMessages(history)
+        if (result.extractedEvidence.length > 0) {
+          setNewlyExtractedEvidence(result.extractedEvidence)
+        }
         return result
       } finally {
         setIsSending(false)
       }
     },
-    [recordId, stage],
+    [recordId],
   )
 
   const requestHint = useCallback(() => chatService.requestHint(recordId), [recordId])
 
-  const markEvidence = useCallback(
-    (turn: number, evidenceValue: string) => chatService.markEvidence(recordId, turn, evidenceValue),
-    [recordId],
-  )
-
-  return { messages, send, requestHint, markEvidence, isSending }
+  return { messages, send, requestHint, isSending, newlyExtractedEvidence }
 }

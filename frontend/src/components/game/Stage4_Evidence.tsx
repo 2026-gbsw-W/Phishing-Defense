@@ -3,16 +3,16 @@ import toast from 'react-hot-toast'
 import { useEvidenceList } from '@hooks/useEvidence'
 import { evidenceService } from '@services/evidenceService'
 import { ApiError } from '@/types/api'
-import type { EvidenceType } from '@/types/game'
 
 interface Stage4EvidenceProps {
   recordId: number
   onProceed: () => void
 }
 
-// Short Korean labels for the evidence types the user can mark during Stage 2
-// chat (docs/PRD.md §17, frontend/src/mocks/handlers/chat.ts's guessEvidenceType).
-const EVIDENCE_TYPE_LABELS: Record<EvidenceType, string> = {
+// Short Korean labels for the evidence types the backend's rule-based
+// extractor tags (docs/PRD.md §17). Falls back to the raw type string for
+// anything not in this list, so a new type on the backend doesn't crash.
+const EVIDENCE_TYPE_LABELS: Record<string, string> = {
   phone_number: '전화번호',
   name: '이름',
   email: '이메일',
@@ -50,7 +50,7 @@ export function Stage4_Evidence({ recordId, onProceed }: Stage4EvidenceProps) {
     if (isSubmitting) return
     setIsSubmitting(true)
     try {
-      await evidenceService.submitEvidence(recordId, [...selectedIds])
+      await evidenceService.confirmEvidence(recordId, [...selectedIds])
       onProceed()
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : '증거 제출에 실패했습니다.')
@@ -71,10 +71,10 @@ export function Stage4_Evidence({ recordId, onProceed }: Stage4EvidenceProps) {
 
   return (
     <div className="stage4-evidence-container">
-      <p className="stage4-evidence-prompt">수집한 증거를 확인하고 제출할 항목을 선택하세요</p>
+      <p className="stage4-evidence-prompt">자동으로 수집된 증거를 확인하고 제출할 항목을 선택하세요</p>
 
       {!hasEvidence && (
-        <p className="stage4-evidence-empty">저장한 증거가 없습니다. 그래도 신고를 진행할 수 있어요.</p>
+        <p className="stage4-evidence-empty">아직 발견된 증거가 없습니다. 그래도 신고를 진행할 수 있어요.</p>
       )}
 
       {hasEvidence && (
@@ -91,7 +91,9 @@ export function Stage4_Evidence({ recordId, onProceed }: Stage4EvidenceProps) {
                   />
                   <span className="stage4-evidence-item-body">
                     <span className="stage4-evidence-item-value">{evidence.value}</span>
-                    <span className="stage4-evidence-item-type mono">{EVIDENCE_TYPE_LABELS[evidence.type]}</span>
+                    <span className="stage4-evidence-item-type mono">
+                      {EVIDENCE_TYPE_LABELS[evidence.type] ?? evidence.type}
+                    </span>
                   </span>
                 </label>
               </li>

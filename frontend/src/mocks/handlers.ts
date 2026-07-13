@@ -1,16 +1,8 @@
 import type { HttpHandler } from 'msw'
 import { authHandlers } from './handlers/auth'
 import { userHandlers } from './handlers/user'
-import { gameHandlers } from './handlers/game'
-import { chatHandlers } from './handlers/chat'
-import { evidenceHandlers } from './handlers/evidence'
-import { reportHandlers } from './handlers/report'
 
-export const handlers: HttpHandler[] = [
-  ...authHandlers,
-  ...userHandlers,
-  ...gameHandlers,
-  ...chatHandlers,
-  ...evidenceHandlers,
-  ...reportHandlers,
-]
+// Only auth + profile are mocked — the real game flow (chapters, scenarios,
+// chat, evidence, judgment, report) talks to the actual Spring backend + AI
+// service now (docs/PRD.md §14), not MSW.
+export const handlers: HttpHandler[] = [...authHandlers, ...userHandlers]

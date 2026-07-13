@@ -10,6 +10,7 @@ export interface User {
 
 export interface AuthSession {
   token: string
+  refreshToken: string
   userId: number
   email: string
   nickname: string

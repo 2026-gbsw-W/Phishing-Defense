@@ -8,23 +8,21 @@ interface Stage2ChatProps {
   onProceedToJudgment: () => void
 }
 
-/** Unique identity for a chat message within a record — `turn` alone collides
- * because the user and AI reply for the same turn share the same turn number. */
-function messageKey(turn: number, sender: string, index: number): string {
-  return `${turn}-${sender}-${index}`
-}
-
 export function Stage2_Chat({ recordId, onProceedToJudgment }: Stage2ChatProps) {
-  const { messages, send, requestHint, markEvidence, isSending } = useChat(recordId, 2)
+  const { messages, send, requestHint, isSending, newlyExtractedEvidence } = useChat(recordId)
   const [draft, setDraft] = useState('')
   const [hintText, setHintText] = useState<string | null>(null)
   const [isHinting, setIsHinting] = useState(false)
-  const [markedKeys, setMarkedKeys] = useState<Set<string>>(new Set())
   const listEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     listEndRef.current?.scrollIntoView?.({ block: 'end' })
   }, [messages])
+
+  useEffect(() => {
+    if (newlyExtractedEvidence.length === 0) return
+    toast.success(`증거가 자동으로 발견되었습니다: ${newlyExtractedEvidence.map((e) => e.value).join(', ')}`)
+  }, [newlyExtractedEvidence])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -51,36 +49,14 @@ export function Stage2_Chat({ recordId, onProceedToJudgment }: Stage2ChatProps) 
     }
   }
 
-  const handleMark = async (turn: number, message: string, key: string) => {
-    try {
-      await markEvidence(turn, message)
-      setMarkedKeys((prev) => new Set(prev).add(key))
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : '증거 저장에 실패했습니다.')
-    }
-  }
-
   return (
     <div className="stage2-chat-container">
       <div className="stage2-chat-messages">
-        {messages.map((msg, index) => {
-          const key = messageKey(msg.turn, msg.sender, index)
-          const isMarked = markedKeys.has(key)
-          return (
-            <div key={key} className={`stage2-chat-bubble stage2-chat-bubble-${msg.sender}`}>
-              <p className="stage2-chat-bubble-text">{msg.message}</p>
-              <button
-                type="button"
-                className="stage2-chat-mark-btn"
-                aria-label={isMarked ? '증거로 저장됨' : '증거로 저장'}
-                disabled={isMarked}
-                onClick={() => handleMark(msg.turn, msg.message, key)}
-              >
-                {isMarked ? '저장됨 ✓' : '증거로 저장'}
-              </button>
-            </div>
-          )
-        })}
+        {messages.map((msg, index) => (
+          <div key={`${msg.turn}-${msg.sender}-${index}`} className={`stage2-chat-bubble stage2-chat-bubble-${msg.sender}`}>
+            <p className="stage2-chat-bubble-text">{msg.message}</p>
+          </div>
+        ))}
         <div ref={listEndRef} />
       </div>
 

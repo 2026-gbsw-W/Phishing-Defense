@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Check, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useReport } from '@hooks/useReport'
 import { reportService } from '@services/reportService'
@@ -34,7 +33,7 @@ export function Stage6_Result({ recordId, onClaimed }: Stage6ResultProps) {
       const result = await reportService.claimReport(recordId)
       // Reflect the reward in the global auth session immediately (Dashboard
       // XP/level display) without requiring a page reload.
-      useAuthStore.getState().updateXp(result.newTotalXp)
+      useAuthStore.getState().updateXp(result.newBalance)
       setClaimResult({ xpAdded: result.xpAdded, levelUp: result.levelUp })
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : '보상 수령에 실패했습니다.')
@@ -64,25 +63,10 @@ export function Stage6_Result({ recordId, onClaimed }: Stage6ResultProps) {
 
       <div className="stage6-result-section">
         <p className="stage6-result-section-title">
-          제출한 증거 ({report.evidenceAnalysis.validCount}/{report.evidenceAnalysis.submittedCount} 유효)
+          제출한 증거 ({report.evidenceAnalysis.submittedCount}/{report.evidenceAnalysis.totalCount})
         </p>
-        {report.evidenceAnalysis.verdicts.length === 0 && (
+        {report.evidenceAnalysis.submittedCount === 0 && (
           <p className="stage6-result-empty">제출한 증거가 없습니다.</p>
-        )}
-        {report.evidenceAnalysis.verdicts.length > 0 && (
-          <ul className="stage6-result-verdict-list">
-            {report.evidenceAnalysis.verdicts.map((v) => (
-              <li key={v.evidenceId} className="stage6-result-verdict-item">
-                <span className={`stage6-result-verdict-icon ${v.isValid ? 'is-valid' : 'is-invalid'}`}>
-                  {v.isValid ? <Check size={16} /> : <X size={16} />}
-                </span>
-                <span className="stage6-result-verdict-body">
-                  <span className="stage6-result-verdict-value">{v.value}</span>
-                  <span className="stage6-result-verdict-reason">{v.reason}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
         )}
       </div>
 
@@ -90,12 +74,23 @@ export function Stage6_Result({ recordId, onClaimed }: Stage6ResultProps) {
         <div className="stage6-result-section">
           <p className="stage6-result-section-title">놓친 증거</p>
           <ul className="stage6-result-missed-list">
-            {report.evidenceAnalysis.missedEvidence.map((value) => (
-              <li key={value} className="stage6-result-missed-item">
-                {value}
+            {report.evidenceAnalysis.missedEvidence.map((item) => (
+              <li key={item.evidenceId} className="stage6-result-missed-item">
+                {item.value}
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {report.aiAnalysis && (
+        <div className="stage6-result-section">
+          <p className="stage6-result-section-title">AI 위험도 분석 (위험도 {report.aiAnalysis.riskScore}점)</p>
+          {report.aiAnalysis.goodPoints && <p className="stage6-result-ai-line">잘한 점: {report.aiAnalysis.goodPoints}</p>}
+          {report.aiAnalysis.mistakes && <p className="stage6-result-ai-line">아쉬운 점: {report.aiAnalysis.mistakes}</p>}
+          {report.aiAnalysis.improvementTips && (
+            <p className="stage6-result-ai-line">개선 팁: {report.aiAnalysis.improvementTips}</p>
+          )}
         </div>
       )}
 

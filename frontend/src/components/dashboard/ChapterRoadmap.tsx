@@ -1,4 +1,4 @@
-import { Lock, Star } from 'lucide-react'
+import { Lock } from 'lucide-react'
 import type { Chapter } from '@/types/game'
 
 interface ChapterRoadmapProps {
@@ -6,11 +6,12 @@ interface ChapterRoadmapProps {
   onPlay: (chapter: Chapter) => void
 }
 
-function chapterState(chapter: Chapter, isFirstPlayable: boolean): 'locked' | 'current' | 'completed' | 'unlocked' {
-  if (!chapter.isUnlocked) return 'locked'
-  if (chapter.isCompleted) return 'completed'
-  if (isFirstPlayable) return 'current'
-  return 'unlocked'
+// The real GET /chapters response has no per-user unlock/star-rating data —
+// only the first chapter (lowest orderIndex — seeded as 1, not 0) has real
+// scenario content wired up end to end right now, so it's the only one
+// presented as playable.
+function chapterState(chapter: Chapter, firstOrderIndex: number): 'locked' | 'current' {
+  return chapter.orderIndex === firstOrderIndex ? 'current' : 'locked'
 }
 
 // Hand-tuned wander pattern (fraction of the amplitude) so the path curves
@@ -46,7 +47,7 @@ function pathFor(points: { x: number; y: number }[]): string {
 }
 
 export function ChapterRoadmap({ chapters, onPlay }: ChapterRoadmapProps) {
-  const firstPlayableId = chapters.find((c) => c.isUnlocked && !c.isCompleted)?.chapterId
+  const firstOrderIndex = Math.min(...chapters.map((c) => c.orderIndex))
   const points = chapters.map((_, i) => nodeCenter(i))
   const trackHeight = chapters.length * ROW_HEIGHT
 
@@ -62,7 +63,7 @@ export function ChapterRoadmap({ chapters, onPlay }: ChapterRoadmapProps) {
       </svg>
 
       {chapters.map((chapter, i) => {
-        const state = chapterState(chapter, chapter.chapterId === firstPlayableId)
+        const state = chapterState(chapter, firstOrderIndex)
         const { x, y } = points[i]
 
         return (
@@ -79,20 +80,13 @@ export function ChapterRoadmap({ chapters, onPlay }: ChapterRoadmapProps) {
               aria-label={`Chapter ${chapter.chapterId}: ${chapter.title}`}
             >
               {state === 'locked' && <Lock size={22} />}
-              {state === 'completed' && <Star size={26} fill="currentColor" strokeWidth={0} />}
-              {(state === 'current' || state === 'unlocked') && (
-                <span className="roadmap-node-number mono">{chapter.chapterId}</span>
-              )}
+              {state === 'current' && <span className="roadmap-node-number mono">{chapter.chapterId}</span>}
               {state === 'current' && <span className="roadmap-node-ring" aria-hidden="true" />}
             </button>
 
             <div className="roadmap-info">
               <p className="roadmap-title">{chapter.title}</p>
-              {state === 'completed' ? (
-                <p className="roadmap-stars mono">{'★'.repeat(chapter.bestStar).padEnd(3, '☆')}</p>
-              ) : (
-                <p className="roadmap-status">{state === 'locked' ? '잠김' : '미완료'}</p>
-              )}
+              <p className="roadmap-status">{state === 'locked' ? '잠김' : '미완료'}</p>
               {state === 'current' && (
                 <button type="button" className="roadmap-play-pill" onClick={() => onPlay(chapter)}>
                   플레이

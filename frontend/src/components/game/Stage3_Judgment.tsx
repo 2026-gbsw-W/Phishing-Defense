@@ -2,11 +2,14 @@ import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { gameService } from '@/services/gameService'
 import { ApiError } from '@/types/api'
-import type { Stage } from '@/types/game'
 
 interface Stage3JudgmentProps {
   recordId: number
-  onProceed: (stageProgression: Stage) => void
+  // The real backend's judgment endpoint returns its own internal
+  // stageProgression counter (unrelated to our 1-6 UI stage numbering) and
+  // allows unlimited retries on a wrong answer — so advancement here is
+  // driven purely by `isCorrect`, not by comparing stage numbers.
+  onProceed: () => void
 }
 
 export function Stage3_Judgment({ recordId, onProceed }: Stage3JudgmentProps) {
@@ -14,7 +17,6 @@ export function Stage3_Judgment({ recordId, onProceed }: Stage3JudgmentProps) {
   const [feedback, setFeedback] = useState<string | null>(null)
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
   const [canProceed, setCanProceed] = useState(false)
-  const [stageProgression, setStageProgression] = useState<Stage | null>(null)
 
   const handleJudge = async (isPhishing: boolean) => {
     if (isSubmitting) return
@@ -23,20 +25,13 @@ export function Stage3_Judgment({ recordId, onProceed }: Stage3JudgmentProps) {
       const result = await gameService.submitJudgment(recordId, isPhishing)
       setFeedback(result.feedback)
       setIsCorrect(result.isCorrect)
-      if (result.stageProgression !== 3) {
+      if (result.isCorrect) {
         setCanProceed(true)
-        setStageProgression(result.stageProgression)
       }
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : '판단 제출에 실패했습니다.')
     } finally {
       setIsSubmitting(false)
-    }
-  }
-
-  const handleContinue = () => {
-    if (stageProgression !== null) {
-      onProceed(stageProgression)
     }
   }
 
@@ -72,7 +67,7 @@ export function Stage3_Judgment({ recordId, onProceed }: Stage3JudgmentProps) {
       )}
 
       {canProceed && (
-        <button type="button" className="btn-primary" onClick={handleContinue}>
+        <button type="button" className="btn-primary" onClick={onProceed}>
           다음으로
         </button>
       )}

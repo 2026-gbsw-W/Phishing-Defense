@@ -1,18 +1,29 @@
+// UI-level stage (1-6, our own game-screen concept). The real backend also
+// has an entity called "Stage" but that's their internal name for what we
+// call a Scenario (a chapter's individual playable case) — see `Scenario`
+// below. Do not confuse the two.
 export type Stage = 1 | 2 | 3 | 4 | 5 | 6
 
 export interface Chapter {
   chapterId: number
   title: string
+  description: string
   difficulty: number
-  isUnlocked: boolean
-  bestStar: number
-  isCompleted: boolean
+  scenarioCount: number
+  orderIndex: number
 }
 
+// Backend calls this a "Stage" (GET /chapters/{chapterId}/stages, DB table
+// `scenarios`) — renamed here to Scenario to avoid colliding with our UI
+// Stage concept above.
 export interface Scenario {
-  scenarioId: number
+  stageId: number
+  chapterId: number
   title: string
+  initialMessage: string
   phishingType: string
+  difficulty: number
+  completed: boolean | null
 }
 
 export interface ScenarioStartResponse {
@@ -24,27 +35,30 @@ export interface ScenarioStartResponse {
 export interface ScenarioStatus {
   recordId: number
   scenarioId: number
-  stage: Stage
+  stage: number
   currentTurn: number
   isCompleted: boolean
-  hintsRemaining: number
+  hintsUsed: number
 }
 
-// DB schema (docs/PRD.md §13.1.4) only distinguishes 'user' vs 'ai' —
-// which persona is speaking is implied by the current stage.
 export type ChatSender = 'user' | 'ai'
 
-export interface ChatMessage {
+export interface ChatHistoryEntry {
   turn: number
   sender: ChatSender
   message: string
   timestamp: string
-  stage: Stage
+}
+
+export interface ExtractedEvidenceItem {
+  type: string
+  value: string
 }
 
 export interface ChatSendResponse {
   aiResponse: string
   turn: number
+  extractedEvidence: ExtractedEvidenceItem[]
   hintAvailable: boolean
 }
 
@@ -53,58 +67,42 @@ export interface HintResponse {
   remainingHints: number
 }
 
-// User-marked evidence (docs/PRD.md §11.1 F2, §13.1.5, §17) — the user
-// long-presses a chat message to save it; the AI never auto-extracts it.
-export type EvidenceType =
-  | 'phone_number'
-  | 'name'
-  | 'email'
-  | 'amount_mentioned'
-  | 'account_number'
-  | 'suspicious_url'
-  | 'impersonation_type'
-  | 'impersonation_detail'
-  | 'urgency'
-  | 'tone_unnatural'
-  | 'information_pattern'
-  | 'transaction_request'
-  | 'personal_info_request'
-  | 'etc'
-
-export interface Evidence {
-  evidenceId: number
-  type: EvidenceType
-  value: string
-  turn: number
-  isSubmitted: boolean
-  // Both are only meaningful once Stage 6 has judged the evidence.
-  isValid: boolean | null
-  validityReason: string | null
-  importanceLevel: number | null
-}
-
-export interface EvidenceMarkResponse {
-  evidenceId: number
-  evidenceTypeGuess: EvidenceType
-  saved: true
-}
-
-export interface EvidenceSubmitResponse {
-  submittedCount: number
-}
-
 export interface JudgmentResponse {
   isCorrect: boolean
   feedback: string
-  wrongAttempts: number
-  stageProgression: Stage
+  stageProgression: number
 }
 
-export interface EvidenceVerdict {
+export interface EvidenceItem {
   evidenceId: number
+  type: string
   value: string
-  isValid: boolean
-  reason: string
+  importance: number
+}
+
+export interface EvidenceConfirmResponse {
+  evidenceCollectionPercentage: number
+  missedEvidence: EvidenceItem[]
+}
+
+/** Mirrors the AI-generated risk analysis embedded in a scenario report,
+ * when the backend was able to reach the AI service (`aiAnalysis` is null
+ * otherwise). Field set matches `TrainingResultResponse` from
+ * POST /chat/{recordId}/end, which the report reuses. */
+export interface AiRiskAnalysis {
+  personalInfoRequested: boolean
+  accountNumberRequested: boolean
+  moneyRequested: boolean
+  urgencyCreated: boolean
+  authorityImpersonation: boolean
+  suspiciousLink: boolean
+  userFellForIt: boolean
+  riskScore: number
+  dangerousMessages: string[]
+  evidenceFeedback: string
+  goodPoints: string
+  mistakes: string
+  improvementTips: string
 }
 
 export interface ScenarioReport {
@@ -114,15 +112,15 @@ export interface ScenarioReport {
   detailedFeedback: string
   evidenceAnalysis: {
     submittedCount: number
-    validCount: number
-    verdicts: EvidenceVerdict[]
-    missedEvidence: string[]
+    totalCount: number
+    missedEvidence: EvidenceItem[]
   }
   recommendations: string[]
+  aiAnalysis: AiRiskAnalysis | null
 }
 
 export interface ReportClaimResponse {
   xpAdded: number
   levelUp: boolean
-  newTotalXp: number
+  newBalance: number
 }

@@ -1,12 +1,13 @@
 import { create } from 'zustand'
 import { authService } from '@/services/authService'
 import type { AuthResult, UserProfile } from '@/services/authService'
-import { setAuthToken } from '@/services/api'
+import { setAuthToken, setRefreshToken, setTokenRefreshHandlers } from '@/services/api'
 import { getLevelInfo } from '@/utils/levels'
 import { ApiError } from '@/types/api'
 import type { AuthSession, LoginPayload, SignupPayload } from '@/types/auth'
 
 const TOKEN_KEY = 'auth_token'
+const REFRESH_TOKEN_KEY = 'auth_refresh_token'
 
 interface AuthState {
   session: AuthSession | null
@@ -23,6 +24,7 @@ interface AuthState {
 function buildSession(auth: AuthResult, profile: UserProfile): AuthSession {
   return {
     token: auth.token,
+    refreshToken: auth.refreshToken,
     userId: auth.userId,
     email: auth.email,
     nickname: auth.nickname,
@@ -34,15 +36,27 @@ function buildSession(auth: AuthResult, profile: UserProfile): AuthSession {
   }
 }
 
-/** signup/login share this: exchange credentials for a token, then fetch the full profile. */
+function persistTokens(token: string, refreshToken: string) {
+  localStorage.setItem(TOKEN_KEY, token)
+  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken)
+}
+
+function clearTokens() {
+  localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(REFRESH_TOKEN_KEY)
+}
+
+/** signup/login share this: exchange credentials for tokens, then fetch the full profile. */
 async function authenticate(request: () => Promise<AuthResult>): Promise<AuthSession> {
   const auth = await request()
   setAuthToken(auth.token)
+  setRefreshToken(auth.refreshToken)
   try {
     const profile = await authService.fetchMe()
     return buildSession(auth, profile)
   } catch (err) {
     setAuthToken(null)
+    setRefreshToken(null)
     throw err
   }
 }
@@ -56,7 +70,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const session = await authenticate(() => authService.signup(payload))
-      localStorage.setItem(TOKEN_KEY, session.token)
+      persistTokens(session.token, session.refreshToken)
       set({ session, isLoading: false })
     } catch (err) {
       set({ isLoading: false, error: err instanceof ApiError ? err.message : '회원가입에 실패했습니다.' })
@@ -67,7 +81,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const session = await authenticate(() => authService.login(payload))
-      localStorage.setItem(TOKEN_KEY, session.token)
+      persistTokens(session.token, session.refreshToken)
       set({ session, isLoading: false })
     } catch (err) {
       set({ isLoading: false, error: err instanceof ApiError ? err.message : '로그인에 실패했습니다.' })
@@ -76,19 +90,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   logout() {
     setAuthToken(null)
-    localStorage.removeItem(TOKEN_KEY)
+    setRefreshToken(null)
+    clearTokens()
     set({ session: null, error: null })
   },
 
   async hydrate() {
     const token = localStorage.getItem(TOKEN_KEY)
-    if (!token) return
+    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
+    if (!token || !refreshToken) return
     setAuthToken(token)
+    setRefreshToken(refreshToken)
     try {
       const profile = await authService.fetchMe()
       set({
         session: {
           token,
+          refreshToken,
           userId: profile.userId,
           email: profile.email,
           nickname: profile.nickname,
@@ -101,7 +119,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       })
     } catch {
       setAuthToken(null)
-      localStorage.removeItem(TOKEN_KEY)
+      setRefreshToken(null)
+      clearTokens()
     }
   },
 
@@ -118,3 +137,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ session: { ...session, ...profile } })
   },
 }))
+
+// api.ts's response interceptor calls these on a silent token refresh (so
+// the new tokens survive a reload) or when the refresh itself fails (so a
+// truly expired session logs the user out instead of looping 403s forever).
+setTokenRefreshHandlers({
+  onRefreshed: (accessToken, refreshToken) => {
+    persistTokens(accessToken, refreshToken)
+    const session = useAuthStore.getState().session
+    if (session) {
+      useAuthStore.setState({ session: { ...session, token: accessToken, refreshToken } })
+    }
+  },
+  onFailed: () => {
+    useAuthStore.getState().logout()
+  },
+})

@@ -964,6 +964,18 @@ h2 {
   font-weight: 700;
   color: var(--safe);
 }
+.stage5-report-transition {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 20px;
+}
+.stage5-report-transition-text {
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 280px;
+}
 .stage5-report-empty {
   color: var(--text-dim);
   font-size: 14px;
@@ -1147,6 +1159,11 @@ h2 {
   border: 1px solid var(--line);
   border-radius: 4px;
   padding: 10px 12px;
+}
+.stage6-result-ai-line {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
 }
 .stage6-result-claim-summary {
   display: flex;

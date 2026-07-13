@@ -1,9 +1,10 @@
 import { apiClient } from './api'
 import type { AuthSession, LoginPayload, SignupPayload } from '@/types/auth'
 
-/** Wire shape of Spring's `AuthResponse` (POST /auth/signup, /auth/login). No XP fields. */
+/** Wire shape of Spring's `AuthResponse` (POST /auth/signup, /auth/login, /auth/refresh). No XP fields. */
 interface AuthWireResponse {
   accessToken: string
+  refreshToken: string
   tokenType: string
   expiresIn: number
   userId: number
@@ -24,8 +25,8 @@ interface UserWireResponse {
   totalXp: number
 }
 
-/** What signup/login give us: identity + token, but no XP/bio/image yet. */
-export type AuthResult = Pick<AuthSession, 'token' | 'userId' | 'email' | 'nickname' | 'level'>
+/** What signup/login/refresh give us: identity + tokens, but no XP/bio/image yet. */
+export type AuthResult = Pick<AuthSession, 'token' | 'refreshToken' | 'userId' | 'email' | 'nickname' | 'level'>
 
 /** Full profile as returned by GET /users/me. */
 export type UserProfile = Pick<
@@ -36,6 +37,7 @@ export type UserProfile = Pick<
 function toAuthResult(body: AuthWireResponse): AuthResult {
   return {
     token: body.accessToken,
+    refreshToken: body.refreshToken,
     userId: body.userId,
     email: body.email,
     nickname: body.nickname,
@@ -64,6 +66,11 @@ export const authService = {
 
   async login(payload: LoginPayload): Promise<AuthResult> {
     const { data } = await apiClient.post<AuthWireResponse>('/api/v1/auth/login', payload)
+    return toAuthResult(data)
+  },
+
+  async refresh(refreshToken: string): Promise<AuthResult> {
+    const { data } = await apiClient.post<AuthWireResponse>('/api/v1/auth/refresh', { refreshToken })
     return toAuthResult(data)
   },
 
