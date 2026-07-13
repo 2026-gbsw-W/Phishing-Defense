@@ -6,8 +6,11 @@ import com.phishingdefense.backend.entity.Chapter;
 import com.phishingdefense.backend.exception.ChapterNotFoundException;
 import com.phishingdefense.backend.exception.StageNotFoundException;
 import com.phishingdefense.backend.repository.ChapterRepository;
+import com.phishingdefense.backend.repository.ScenarioRecordRepository;
 import com.phishingdefense.backend.repository.StageRepository;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +22,7 @@ public class ChapterService {
 
     private final ChapterRepository chapterRepository;
     private final StageRepository stageRepository;
+    private final ScenarioRecordRepository scenarioRecordRepository;
 
     public List<ChapterResponse> getChapters() {
         return chapterRepository.findAllByOrderByOrderIndexAsc().stream()
@@ -30,10 +34,16 @@ public class ChapterService {
         return ChapterResponse.from(getChapterOrThrow(chapterId));
     }
 
-    public List<StageResponse> getStages(Integer chapterId) {
+    public List<StageResponse> getStages(Long userId, Integer chapterId) {
         getChapterOrThrow(chapterId);
+
+        Set<Long> completedStageIds = scenarioRecordRepository.findByUserIdAndChapterId(userId, chapterId).stream()
+                .filter(record -> Boolean.TRUE.equals(record.isCompleted()))
+                .map(record -> record.getScenarioId())
+                .collect(Collectors.toSet());
+
         return stageRepository.findByChapterIdOrderByStageIdAsc(chapterId).stream()
-                .map(StageResponse::from)
+                .map(stage -> StageResponse.from(stage, completedStageIds.contains(stage.getStageId())))
                 .toList();
     }
 
