@@ -138,7 +138,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   WebSocketChannel? _channel;
   StreamSubscription? _wsSub;
   bool _expectingAudio = false;
-  String? _sessionId;
+  String? _sessionId; // ignore: unused_field
 
   // ── 오디오 ─────────────────────────────────────────────────────────────────
   final AudioPlayer _player = AudioPlayer();
@@ -413,7 +413,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
             child: ListView.separated(
               shrinkWrap: true,
               itemCount: aiMsgs.length,
-              separatorBuilder: (_, __) =>
+              separatorBuilder: (_, _) =>
                   const Divider(color: AppColors.border, height: 1),
               itemBuilder: (_, i) {
                 final msg = aiMsgs[i];
@@ -691,7 +691,7 @@ class _CallerCard extends StatelessWidget {
       children: [
         AnimatedBuilder(
           animation: pulseAnim,
-          builder: (_, __) {
+          builder: (_, _) {
             final scale = isSpeaking ? pulseAnim.value : 1.0;
             return Transform.scale(
               scale: scale,
@@ -955,7 +955,7 @@ class _WaveBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: ctrl,
-      builder: (_, __) {
+      builder: (_, _) {
         final h = 6.0 + sin((ctrl.value + index * 0.2) * pi) * 18;
         return Container(
           width: 4,
