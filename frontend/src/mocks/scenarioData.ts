@@ -52,6 +52,12 @@ export const HINT_TEXTS: Record<Stage, string> = {
   6: '',
 }
 
+/** Evidence automatically highlighted by the system per turn during Stage 2 (criminal) chat. */
+export const AUTO_EVIDENCE_BY_TURN: Record<number, { value: string; type: string }[]> = {
+  1: [{ value: '본인 확인을 위해 성함과 주민등록번호 뒷자리를 말씀해 주시겠어요?', type: 'personal_info_request' }],
+  2: [{ value: '계좌번호와 비밀번호를 알려주시면', type: 'personal_info_request' }],
+}
+
 /** The scenario's real extractable evidence, used to judge submissions at Stage 6. */
 export interface GroundTruthEvidence {
   value: string
