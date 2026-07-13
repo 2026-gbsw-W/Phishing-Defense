@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../models/scenario.dart';
 import '../../theme/app_colors.dart';
-import '../stage6_result/result_screen.dart';
+import '../stage4_evidence/evidence_screen.dart';
 
 class JudgeScreen extends StatefulWidget {
-  const JudgeScreen({super.key, required this.scenario});
+  const JudgeScreen({super.key, required this.scenario, required this.judgmentTurn});
 
   final Scenario scenario;
+  final int judgmentTurn;
 
   @override
   State<JudgeScreen> createState() => _JudgeScreenState();
@@ -25,14 +26,15 @@ class _JudgeScreenState extends State<JudgeScreen> {
     });
   }
 
-  void _proceedToResult() {
-    final correct = _userJudgment == true;
+  void _proceedToEvidence() {
+    final correct = _userJudgment == widget.scenario.isPhishing;
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ResultScreen(
+        builder: (_) => EvidenceScreen(
           scenario: widget.scenario,
           judgedCorrectly: correct,
+          judgmentTurn: widget.judgmentTurn,
         ),
       ),
     );
@@ -86,8 +88,8 @@ class _JudgeScreenState extends State<JudgeScreen> {
                 ),
               ] else ...[
                 _ResultReveal(
-                  userJudgment: _userJudgment!,
-                  onContinue: _proceedToResult,
+                  userJudgment: _userJudgment! == widget.scenario.isPhishing,
+                  onContinue: _proceedToEvidence,
                 ),
               ],
             ],
@@ -253,7 +255,7 @@ class _ResultReveal extends StatelessWidget {
           width: double.infinity,
           child: ElevatedButton(
             onPressed: onContinue,
-            child: const Text('결과 리포트 보기 →'),
+            child: const Text('증거 수집하러 가기 →'),
           ),
         ),
       ],

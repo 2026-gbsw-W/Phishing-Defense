@@ -3,7 +3,9 @@ import 'dart:math';
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 
+import '../../logic/scoring.dart';
 import '../../models/scenario.dart';
+import '../../services/game_progress.dart';
 import '../../theme/app_colors.dart';
 import '../scenario_selection/scenario_selection_screen.dart';
 
@@ -12,10 +14,16 @@ class ResultScreen extends StatefulWidget {
     super.key,
     required this.scenario,
     required this.judgedCorrectly,
+    required this.judgmentTurn,
+    required this.evidenceCollectedPercentage,
+    required this.reportHandledCount,
   });
 
   final Scenario scenario;
   final bool judgedCorrectly;
+  final int judgmentTurn;
+  final int evidenceCollectedPercentage;
+  final int reportHandledCount;
 
   @override
   State<ResultScreen> createState() => _ResultScreenState();
@@ -27,14 +35,22 @@ class _ResultScreenState extends State<ResultScreen>
   late final AnimationController _scaleCtrl;
   late final Animation<double> _scaleAnim;
 
-  late final int _stars;
-  late final int _xp;
+  late final ScoreBreakdown _score;
 
   @override
   void initState() {
     super.initState();
-    _stars = widget.judgedCorrectly ? 3 : 1;
-    _xp = widget.judgedCorrectly ? 280 : 100;
+    _score = calculateScore(
+      judgedCorrectly: widget.judgedCorrectly,
+      judgmentTurn: widget.judgmentTurn,
+      evidenceCollectedPercentage: widget.evidenceCollectedPercentage,
+      reportHandledCount: widget.reportHandledCount,
+    );
+
+    GameProgress.instance.recordCompletion(
+      scenarioId: widget.scenario.id,
+      xpEarned: _score.totalXp,
+    );
 
     _confetti = ConfettiController(duration: const Duration(seconds: 3));
 
@@ -47,7 +63,7 @@ class _ResultScreenState extends State<ResultScreen>
     Future.delayed(const Duration(milliseconds: 400), () {
       if (mounted) {
         _scaleCtrl.forward();
-        if (widget.judgedCorrectly) _confetti.play();
+        if (_score.starRating >= 2) _confetti.play();
       }
     });
   }
@@ -95,23 +111,50 @@ class _ResultScreenState extends State<ResultScreen>
                 children: [
                   ScaleTransition(
                     scale: _scaleAnim,
-                    child: _ScoreBadge(stars: _stars, xp: _xp),
+                    child: _ScoreBadge(score: _score),
                   ),
                   const SizedBox(height: 24),
                   _AnalysisSection(
-                    title: '판단 결과',
+                    title: '판단 결과 (${_score.accuracyScore}/50점)',
                     icon: Icons.gavel_rounded,
                     color: widget.judgedCorrectly ? AppColors.safe : AppColors.alarm,
                     content: widget.judgedCorrectly
-                        ? '피싱을 정확히 감지하셨습니다! 의심 단서를 빠르게 포착하는 능력이 뛰어납니다.'
-                        : '이번엔 피싱을 놓치셨습니다. 아래 단서들을 확인하고 다시 도전해보세요.',
+                        ? '${widget.judgmentTurn}번째 대화에서 피싱을 정확히 감지하셨습니다!'
+                            '${widget.judgmentTurn <= 2 ? ' 의심 단서를 빠르게 포착하는 능력이 뛰어납니다.' : widget.judgmentTurn <= 4 ? ' 조금 더 빠르게 의심할 수 있다면 더 좋습니다.' : ' 다음엔 조금 더 빠르게 의심해보세요.'}'
+                        : '이번엔 피싱 여부를 잘못 판단하셨습니다. 대화 속 단서를 다시 확인해보세요.',
+                  ),
+                  const SizedBox(height: 16),
+                  _AnalysisSection(
+                    title: '증거 수집 (${_score.evidenceScore}/20점)',
+                    icon: Icons.search_rounded,
+                    color: AppColors.amber,
+                    content:
+                        '수집률 ${widget.evidenceCollectedPercentage}%를 달성했습니다. 놓친 증거는 아래 목록에서 확인하세요.',
+                  ),
+                  const SizedBox(height: 16),
+                  _AnalysisSection(
+                    title: '신고 대처 (${_score.reportScore}/20점)',
+                    icon: Icons.local_police_rounded,
+                    color: AppColors.safe,
+                    content: widget.reportHandledCount >= 2
+                        ? '경찰·은행 신고 모두 명확하게 대응하셨습니다.'
+                        : widget.reportHandledCount == 1
+                            ? '한쪽 신고만 완료했습니다. 다음엔 양쪽 모두 대응해보세요.'
+                            : '신고 대응이 부족했습니다.',
                   ),
                   const SizedBox(height: 16),
                   _EvidenceSection(hints: widget.scenario.phishingHints),
                   const SizedBox(height: 16),
                   _TipSection(),
                   const SizedBox(height: 32),
-                  _XpBar(xp: _xp, maxXp: 330),
+                  AnimatedBuilder(
+                    animation: GameProgress.instance,
+                    builder: (context, _) => _XpBar(
+                      xp: GameProgress.instance.totalXp,
+                      levelLabel: GameProgress.instance.levelLabel,
+                      level: GameProgress.instance.level,
+                    ),
+                  ),
                   const SizedBox(height: 24),
                   Row(
                     children: [
@@ -163,14 +206,14 @@ class _ResultScreenState extends State<ResultScreen>
 }
 
 class _ScoreBadge extends StatelessWidget {
-  const _ScoreBadge({required this.stars, required this.xp});
+  const _ScoreBadge({required this.score});
 
-  final int stars;
-  final int xp;
+  final ScoreBreakdown score;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final stars = score.starRating;
 
     return Container(
       width: double.infinity,
@@ -198,6 +241,11 @@ class _ScoreBadge extends StatelessWidget {
             stars >= 3 ? '완벽한 대응! 🎉' : stars >= 2 ? '잘 하셨습니다 👍' : '아직 성장 중... 💪',
             style: textTheme.titleLarge,
           ),
+          const SizedBox(height: 4),
+          Text(
+            '총점 ${score.totalScore}/100점',
+            style: textTheme.labelMedium?.copyWith(color: AppColors.textSecondary),
+          ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -220,7 +268,7 @@ class _ScoreBadge extends StatelessWidget {
               borderRadius: BorderRadius.circular(50),
             ),
             child: Text(
-              '+$xp XP 획득!',
+              '+${score.totalXp} XP 획득!',
               style: textTheme.titleMedium?.copyWith(color: AppColors.amber),
             ),
           ),
@@ -299,7 +347,7 @@ class _EvidenceSection extends StatelessWidget {
             children: [
               const Icon(Icons.warning_amber_rounded, color: AppColors.alarm, size: 20),
               const SizedBox(width: 8),
-              Text('놓치면 안 될 단서들',
+              Text('이번 시나리오의 전체 단서',
                   style: textTheme.labelLarge?.copyWith(color: AppColors.alarm)),
             ],
           ),
@@ -376,10 +424,11 @@ class _TipSection extends StatelessWidget {
 }
 
 class _XpBar extends StatefulWidget {
-  const _XpBar({required this.xp, required this.maxXp});
+  const _XpBar({required this.xp, required this.levelLabel, required this.level});
 
   final int xp;
-  final int maxXp;
+  final String levelLabel;
+  final int level;
 
   @override
   State<_XpBar> createState() => _XpBarState();
@@ -394,7 +443,8 @@ class _XpBarState extends State<_XpBar> with SingleTickerProviderStateMixin {
     super.initState();
     _ctrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 1200));
-    _anim = Tween<double>(begin: 0, end: widget.xp / widget.maxXp)
+    final progressWithinLevel = (widget.xp % 1000) / 1000;
+    _anim = Tween<double>(begin: 0, end: progressWithinLevel)
         .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) _ctrl.forward();
@@ -417,8 +467,9 @@ class _XpBarState extends State<_XpBar> with SingleTickerProviderStateMixin {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Lv.1 시민', style: textTheme.labelMedium?.copyWith(color: AppColors.textSecondary)),
-            Text('${widget.xp} / ${widget.maxXp} XP',
+            Text('Lv.${widget.level} ${widget.levelLabel}',
+                style: textTheme.labelMedium?.copyWith(color: AppColors.textSecondary)),
+            Text('누적 ${widget.xp} XP',
                 style: textTheme.labelMedium?.copyWith(color: AppColors.amber)),
           ],
         ),

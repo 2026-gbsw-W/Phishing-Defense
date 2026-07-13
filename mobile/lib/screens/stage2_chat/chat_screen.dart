@@ -16,6 +16,22 @@ class _ChatMsg {
   final bool isNew;
 }
 
+const _suspicionKeywords = [
+  '사기',
+  '피싱',
+  '보이스피싱',
+  '의심',
+  '수상',
+  '신고',
+  '경찰',
+  '가짜',
+  '거짓말',
+];
+
+bool _isSuspiciousMessage(String text) {
+  return _suspicionKeywords.any((keyword) => text.contains(keyword));
+}
+
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key, required this.scenario});
 
@@ -35,14 +51,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isAiTyping = false;
   bool _canProceed = false;
   int _turnCount = 0;
-
-  final _aiResponses = [
-    '네, 빠른 처리를 위해 성함과 주민등록번호 앞자리만 말씀해 주시면 바로 확인해드리겠습니다.',
-    '고객님의 안전을 위해서입니다. 개인정보 확인은 저희 보안 시스템을 통해 암호화되니 걱정 마세요.',
-    '지금 바로 처리하지 않으시면 내일까지 반송 처리됩니다. 빠르게 진행해 주세요.',
-    '아, 그러시면 계좌번호를 알려주시면 택배비 환불 처리 해드리겠습니다.',
-    '잠깐만요, 지금 담당 팀장에게 연결해드리겠습니다. 잠시만 기다려 주세요...',
-  ];
+  int _scriptIndex = 0;
 
   @override
   void initState() {
@@ -81,9 +90,14 @@ class _ChatScreenState extends State<ChatScreen> {
 
     await Future.delayed(const Duration(milliseconds: 1200));
 
-    final response = _turnCount <= _aiResponses.length
-        ? _aiResponses[_turnCount - 1]
-        : '네, 알겠습니다. 조금만 더 협조해 주시면 금방 처리됩니다.';
+    final isSuspicious = _isSuspiciousMessage(text);
+    final responses = widget.scenario.aiResponses;
+    final response = isSuspicious
+        ? widget.scenario.aiSuspicionResponse
+        : _scriptIndex < responses.length
+            ? responses[_scriptIndex]
+            : widget.scenario.aiFallbackResponse;
+    if (!isSuspicious) _scriptIndex++;
 
     if (mounted) {
       setState(() {
@@ -112,7 +126,9 @@ class _ChatScreenState extends State<ChatScreen> {
     _tts.stop();
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => JudgeScreen(scenario: widget.scenario)),
+      MaterialPageRoute(
+        builder: (_) => JudgeScreen(scenario: widget.scenario, judgmentTurn: _turnCount),
+      ),
     );
   }
 
