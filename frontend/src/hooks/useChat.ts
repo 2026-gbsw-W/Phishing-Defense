@@ -27,5 +27,10 @@ export function useChat(recordId: number, stage: Stage) {
 
   const requestHint = useCallback(() => chatService.requestHint(recordId), [recordId])
 
-  return { messages, send, requestHint, isSending }
+  const markEvidence = useCallback(
+    (turn: number, evidenceValue: string) => chatService.markEvidence(recordId, turn, evidenceValue),
+    [recordId],
+  )
+
+  return { messages, send, requestHint, markEvidence, isSending }
 }

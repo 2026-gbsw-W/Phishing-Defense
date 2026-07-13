@@ -1,5 +1,5 @@
 import { apiClient } from '@/services/api'
-import type { ChatMessage, ChatSendResponse, HintResponse, Stage } from '@/types/game'
+import type { ChatMessage, ChatSendResponse, EvidenceMarkResponse, HintResponse, Stage } from '@/types/game'
 
 interface HistoryWire {
   turn: number
@@ -17,6 +17,12 @@ interface SendWire {
 interface HintWire {
   hint_text: string
   remaining_hints: number
+}
+
+interface EvidenceMarkWire {
+  evidence_id: number
+  evidence_type_guess: EvidenceMarkResponse['evidenceTypeGuess']
+  saved: true
 }
 
 export const chatService = {
@@ -42,6 +48,18 @@ export const chatService = {
     return {
       hintText: data.hint_text,
       remainingHints: data.remaining_hints,
+    }
+  },
+
+  async markEvidence(recordId: number, turn: number, evidenceValue: string): Promise<EvidenceMarkResponse> {
+    const { data } = await apiClient.post<EvidenceMarkWire>(`/api/v1/chat/${recordId}/evidence/mark`, {
+      turn,
+      evidence_value: evidenceValue,
+    })
+    return {
+      evidenceId: data.evidence_id,
+      evidenceTypeGuess: data.evidence_type_guess,
+      saved: data.saved,
     }
   },
 }

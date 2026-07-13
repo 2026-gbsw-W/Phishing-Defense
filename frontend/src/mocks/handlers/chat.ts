@@ -1,9 +1,18 @@
 import { http, HttpResponse } from 'msw'
 import { mockDb, userIdFromToken } from '../db'
-import { criminalReplyForTurn, policeReplyForTurn, AUTO_EVIDENCE_BY_TURN, HINT_TEXTS } from '../scenarioData'
-import type { Stage } from '@/types/game'
+import { criminalReplyForTurn, policeReplyForTurn, HINT_TEXTS } from '../scenarioData'
+import type { EvidenceType, Stage } from '@/types/game'
 
 const BASE = '*/api/v1'
+
+// Ports docs/PRD.md §17.2 guess_type() — a lightweight heuristic to suggest
+// an evidence type for a user-marked chat excerpt. Never authoritative;
+// the user/report logic may override it later.
+function guessEvidenceType(value: string): EvidenceType {
+  if (/\d{3}-\d{4}-\d{4}/.test(value)) return 'phone_number'
+  if (['지금', '바로', '급함'].some((kw) => value.includes(kw))) return 'urgency'
+  return 'etc'
+}
 
 export const chatHandlers = [
   http.post(`${BASE}/chat/:recordId/send`, async ({ request, params }) => {
@@ -26,16 +35,11 @@ export const chatHandlers = [
     record.currentTurn = turn
     if (isPolice) record.policeTurnsCompleted = turn
 
-    const extractedEvidence = AUTO_EVIDENCE_BY_TURN[turn] ?? []
-    const stageComplete = isPolice ? turn >= 2 : turn >= 2
-
     return HttpResponse.json(
       {
         ai_response: aiReply,
         turn,
-        extracted_evidence: extractedEvidence,
-        hints_remaining: record.hintsRemaining,
-        stage_complete: stageComplete,
+        hint_available: record.hintsRemaining > 0,
       },
       { status: 201 },
     )
@@ -66,6 +70,33 @@ export const chatHandlers = [
     record.hintsUsed += 1
     record.hintsRemaining -= 1
 
-    return HttpResponse.json({ hint_text: HINT_TEXTS[record.stage], hints_remaining: record.hintsRemaining })
+    return HttpResponse.json({ hint_text: HINT_TEXTS[record.stage], remaining_hints: record.hintsRemaining })
+  }),
+
+  http.post(`${BASE}/chat/:recordId/evidence/mark`, async ({ request, params }) => {
+    if (!userIdFromToken(request.headers.get('Authorization'))) {
+      return HttpResponse.json({ message: 'unauthorized' }, { status: 401 })
+    }
+    const record = mockDb.records.get(Number(params.recordId))
+    if (!record) return HttpResponse.json({ message: 'not found' }, { status: 404 })
+
+    const { turn, evidence_value: evidenceValue } = (await request.json()) as { turn: number; evidence_value: string }
+    const typeGuess = guessEvidenceType(evidenceValue)
+
+    const evidence = mockDb.addEvidence(record, {
+      evidenceId: mockDb.nextEvidenceId(),
+      type: typeGuess,
+      value: evidenceValue,
+      turn,
+      isSubmitted: false,
+      isValid: null,
+      validityReason: null,
+      importanceLevel: null,
+    })
+
+    return HttpResponse.json(
+      { evidence_id: evidence.evidenceId, evidence_type_guess: typeGuess, saved: true },
+      { status: 201 },
+    )
   }),
 ]

@@ -95,6 +95,12 @@ export const mockDb = {
   nextEvidenceId(): number {
     return evidenceSeq++
   },
+
+  addEvidence(record: MockRecord, evidence: Omit<MockEvidence, 'recordId'>): MockEvidence {
+    const full: MockEvidence = { ...evidence, recordId: record.recordId }
+    record.evidence.push(full)
+    return full
+  },
 }
 
 export function tokenForUser(userId: number): string {

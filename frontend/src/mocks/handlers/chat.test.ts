@@ -15,7 +15,7 @@ async function setup() {
 }
 
 describe('chat mock handlers', () => {
-  it('sends a message and gets a scripted criminal reply with extracted evidence', async () => {
+  it('sends a message and gets a scripted criminal reply', async () => {
     const { token, recordId } = await setup()
     const res = await fetch(`${BASE}/chat/${recordId}/send`, {
       method: 'POST',
@@ -25,7 +25,9 @@ describe('chat mock handlers', () => {
     const body = await res.json()
     expect(body.turn).toBe(1)
     expect(body.ai_response).toContain('본인 확인')
-    expect(body.extracted_evidence.length).toBeGreaterThan(0)
+    expect(body.hint_available).toBe(true)
+    expect(body).not.toHaveProperty('extracted_evidence')
+    expect(body).not.toHaveProperty('stage_complete')
   })
 
   it('returns full chat history including the initial SMS', async () => {
@@ -44,7 +46,65 @@ describe('chat mock handlers', () => {
     const { token, recordId } = await setup()
     const res = await fetch(`${BASE}/chat/${recordId}/hint`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
     const body = await res.json()
-    expect(body.hints_remaining).toBe(2)
+    expect(body.remaining_hints).toBe(2)
     expect(body.hint_text.length).toBeGreaterThan(0)
+  })
+
+  describe('evidence/mark', () => {
+    it('marks a phone-number-shaped value as phone_number', async () => {
+      const { token, recordId } = await setup()
+      const res = await fetch(`${BASE}/chat/${recordId}/evidence/mark`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ turn: 1, evidence_value: '050-1234-5678' }),
+      })
+      const body = await res.json()
+      expect(res.status).toBe(201)
+      expect(body.evidence_type_guess).toBe('phone_number')
+      expect(body.saved).toBe(true)
+      expect(typeof body.evidence_id).toBe('number')
+    })
+
+    it('marks a value containing an urgency keyword as urgency', async () => {
+      const { token, recordId } = await setup()
+      const res = await fetch(`${BASE}/chat/${recordId}/evidence/mark`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ turn: 2, evidence_value: '지금 바로 계좌번호를 알려주세요' }),
+      })
+      const body = await res.json()
+      expect(body.evidence_type_guess).toBe('urgency')
+    })
+
+    it('marks a generic value as etc', async () => {
+      const { token, recordId } = await setup()
+      const res = await fetch(`${BASE}/chat/${recordId}/evidence/mark`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ turn: 1, evidence_value: '국민은행 사칭' }),
+      })
+      const body = await res.json()
+      expect(body.evidence_type_guess).toBe('etc')
+    })
+
+    it('returns 401 without auth', async () => {
+      const { recordId } = await setup()
+      const res = await fetch(`${BASE}/chat/${recordId}/evidence/mark`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ turn: 1, evidence_value: 'x' }),
+      })
+      expect(res.status).toBe(401)
+    })
+
+    it('returns 404 for a non-existent record', async () => {
+      const { token } = await setup()
+      const res = await fetch(`${BASE}/chat/999999/evidence/mark`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ turn: 1, evidence_value: 'x' }),
+      })
+      expect(res.status).toBe(404)
+    })
   })
 })
