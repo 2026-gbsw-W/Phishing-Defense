@@ -22,8 +22,10 @@ export function GameLayout({ stage, children }: GameLayoutProps) {
   const navigate = useNavigate()
   return (
     <div className="game-layout-page">
+      <div className="game-layout-glow game-layout-glow-1" aria-hidden="true" />
+      <div className="game-layout-glow game-layout-glow-2" aria-hidden="true" />
+
       <div className="game-layout-phone">
-        <div className="game-layout-notch" aria-hidden="true" />
         <div className="game-layout-screen">
           <div className="game-layout-statusbar mono" aria-hidden="true">
             <span>9:41</span>
@@ -32,6 +34,9 @@ export function GameLayout({ stage, children }: GameLayoutProps) {
               <Wifi size={13} />
               <BatteryFull size={15} />
             </span>
+          </div>
+          <div className="game-layout-island" aria-hidden="true">
+            <span className="game-layout-island-cam" />
           </div>
 
           <header className="game-layout-header">
@@ -45,6 +50,7 @@ export function GameLayout({ stage, children }: GameLayoutProps) {
           </header>
 
           <main className="game-layout-main">{children}</main>
+          <div className="game-layout-screen-sheen" aria-hidden="true" />
         </div>
         <div className="game-layout-home-indicator" aria-hidden="true" />
       </div>
