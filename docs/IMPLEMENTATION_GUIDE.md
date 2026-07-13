@@ -1021,7 +1021,7 @@ GET /api/v1/users/me/inventory
 
 ```
 GET /api/v1/leaderboard?scope=global&period=weekly&limit=100
-├─ scope: global, friends, monthly
+├─ scope: global, monthly
 ├─ period: daily, weekly, monthly, all_time
 └─ 응답: [
     {
@@ -1043,9 +1043,6 @@ GET /api/v1/leaderboard?scope=global&period=weekly&limit=100
       is_current_user: true
     }
   ]
-
-GET /api/v1/leaderboard/friends
-└─ 응답: [ { rank, user_id, nickname, xp, level } ]
 
 GET /api/v1/leaderboard/category?category=family_phishing
 └─ category: family, delivery, bank, police 등
