@@ -45,7 +45,11 @@ export function GamePage() {
         <Stage1_SMS message={initialMessage} onContinue={() => setViewStage(2)} />
       )}
       {viewStage === 2 && (
-        <Stage2_Chat recordId={recordId} onProceedToJudgment={() => setViewStage(3)} />
+        <Stage2_Chat
+          recordId={recordId}
+          initialMessage={initialMessage}
+          onProceedToJudgment={() => setViewStage(3)}
+        />
       )}
       {viewStage === 3 && <Stage3_Judgment recordId={recordId} onProceed={() => setViewStage(4)} />}
       {viewStage === 4 && <Stage4_Evidence recordId={recordId} onProceed={() => setViewStage(5)} />}

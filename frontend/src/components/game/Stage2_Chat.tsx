@@ -5,11 +5,19 @@ import { ApiError } from '@/types/api'
 
 interface Stage2ChatProps {
   recordId: number
+  // The real backend's chat history never includes the initial SMS (it's
+  // only returned once, from the scenario-start response) — show it as the
+  // conversation's opening bubble here too, otherwise the chat screen looks
+  // empty until the player sends something.
+  initialMessage: string | null
   onProceedToJudgment: () => void
 }
 
-export function Stage2_Chat({ recordId, onProceedToJudgment }: Stage2ChatProps) {
+export function Stage2_Chat({ recordId, initialMessage, onProceedToJudgment }: Stage2ChatProps) {
   const { messages, send, requestHint, isSending, newlyExtractedEvidence } = useChat(recordId)
+  const displayMessages = initialMessage
+    ? [{ turn: 0, sender: 'ai' as const, message: initialMessage, timestamp: '' }, ...messages]
+    : messages
   const [draft, setDraft] = useState('')
   const [hintText, setHintText] = useState<string | null>(null)
   const [isHinting, setIsHinting] = useState(false)
@@ -52,7 +60,7 @@ export function Stage2_Chat({ recordId, onProceedToJudgment }: Stage2ChatProps) 
   return (
     <div className="stage2-chat-container">
       <div className="stage2-chat-messages">
-        {messages.map((msg, index) => (
+        {displayMessages.map((msg, index) => (
           <div key={`${msg.turn}-${msg.sender}-${index}`} className={`stage2-chat-bubble stage2-chat-bubble-${msg.sender}`}>
             <p className="stage2-chat-bubble-text">{msg.message}</p>
           </div>
