@@ -1,0 +1,31 @@
+import { useState, useEffect, useCallback } from 'react'
+import { chatService } from '@/services/chatService'
+import type { ChatMessage, Stage } from '@/types/game'
+
+export function useChat(recordId: number, stage: Stage) {
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [isSending, setIsSending] = useState(false)
+
+  useEffect(() => {
+    chatService.getHistory(recordId).then(setMessages)
+  }, [recordId])
+
+  const send = useCallback(
+    async (text: string) => {
+      setIsSending(true)
+      try {
+        const result = await chatService.sendMessage(recordId, text, stage)
+        const history = await chatService.getHistory(recordId)
+        setMessages(history)
+        return result
+      } finally {
+        setIsSending(false)
+      }
+    },
+    [recordId, stage],
+  )
+
+  const requestHint = useCallback(() => chatService.requestHint(recordId), [recordId])
+
+  return { messages, send, requestHint, isSending }
+}
