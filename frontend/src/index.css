@@ -567,3 +567,41 @@ h2 {
   outline: none;
   border-color: rgba(255, 69, 63, 0.5);
 }
+
+/* ---- Stage3_Judgment component ---- */
+.stage3-judgment-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding-top: 32px;
+  text-align: center;
+}
+.stage3-judgment-prompt {
+  font-size: 18px;
+  font-weight: 700;
+}
+.stage3-judgment-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 320px;
+}
+.stage3-judgment-feedback {
+  font-size: 14px;
+  line-height: 1.5;
+  border-radius: 4px;
+  padding: 14px 16px;
+  max-width: 340px;
+}
+.stage3-judgment-feedback-correct {
+  color: var(--safe);
+  background: var(--safe-dim);
+  border: 1px solid rgba(41, 199, 132, 0.25);
+}
+.stage3-judgment-feedback-wrong {
+  color: var(--alarm);
+  background: var(--alarm-dim);
+  border: 1px solid rgba(255, 69, 63, 0.25);
+}

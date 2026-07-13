@@ -1,5 +1,5 @@
 import { apiClient } from './api'
-import type { Chapter, Scenario, ScenarioStartResponse, ScenarioStatus } from '@/types/game'
+import type { Chapter, JudgmentResponse, Scenario, ScenarioStartResponse, ScenarioStatus, Stage } from '@/types/game'
 
 interface ChapterWire {
   chapter_id: number
@@ -29,6 +29,13 @@ interface StatusWire {
   current_turn: number
   is_completed: boolean
   hints_remaining: number
+}
+
+interface JudgmentWire {
+  is_correct: boolean
+  feedback: string
+  wrong_attempts: number
+  stage_progression: Stage
 }
 
 export const gameService = {
@@ -63,6 +70,18 @@ export const gameService = {
       currentTurn: data.current_turn,
       isCompleted: data.is_completed,
       hintsRemaining: data.hints_remaining,
+    }
+  },
+
+  async submitJudgment(recordId: number, isPhishing: boolean): Promise<JudgmentResponse> {
+    const { data } = await apiClient.post<JudgmentWire>(`/api/v1/scenarios/${recordId}/judgment`, {
+      is_phishing: isPhishing,
+    })
+    return {
+      isCorrect: data.is_correct,
+      feedback: data.feedback,
+      wrongAttempts: data.wrong_attempts,
+      stageProgression: data.stage_progression,
     }
   },
 }
