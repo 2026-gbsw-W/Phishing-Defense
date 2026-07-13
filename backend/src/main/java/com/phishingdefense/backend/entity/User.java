@@ -114,4 +114,17 @@ public class User {
     public void changeProfileImageUrl(String profileImageUrl) {
         this.profileImageUrl = profileImageUrl;
     }
+
+    public void addXp(int amount) {
+        this.currentXp = (this.currentXp == null ? 0 : this.currentXp) + amount;
+        this.totalXp = (this.totalXp == null ? 0 : this.totalXp) + amount;
+    }
+
+    public boolean hasHints() {
+        return this.hints != null && this.hints > 0;
+    }
+
+    public void decrementHints() {
+        this.hints = this.hints - 1;
+    }
 }

@@ -9,6 +9,7 @@ import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -17,6 +18,10 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class DailyMission {
+
+    public static final String TYPE_FIXED = "fixed";
+    public static final String TYPE_DYNAMIC = "dynamic";
+    public static final String TYPE_BONUS = "bonus";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -49,4 +54,37 @@ public class DailyMission {
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Builder
+    private DailyMission(Long userId, String missionType, String missionDescription,
+                          String recommendationReason, Integer rewardXp, LocalDate createdDate) {
+        this.userId = userId;
+        this.missionType = missionType;
+        this.missionDescription = missionDescription;
+        this.recommendationReason = recommendationReason;
+        this.rewardXp = rewardXp;
+        this.createdDate = createdDate;
+        this.completed = false;
+    }
+
+    public static DailyMission create(Long userId, String missionType, String missionDescription,
+                                       String recommendationReason, Integer rewardXp, LocalDate createdDate) {
+        return DailyMission.builder()
+                .userId(userId)
+                .missionType(missionType)
+                .missionDescription(missionDescription)
+                .recommendationReason(recommendationReason)
+                .rewardXp(rewardXp)
+                .createdDate(createdDate)
+                .build();
+    }
+
+    public void complete() {
+        this.completed = true;
+        this.completedAt = LocalDateTime.now();
+    }
+
+    public boolean isOwnedBy(Long userId) {
+        return this.userId.equals(userId);
+    }
 }

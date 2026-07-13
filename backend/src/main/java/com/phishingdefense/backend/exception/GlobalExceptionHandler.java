@@ -45,22 +45,36 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({UserNotFoundException.class, ProfileImageNotFoundException.class,
             ChapterNotFoundException.class, StageNotFoundException.class,
             ScenarioRecordNotFoundException.class, EvidenceNotFoundException.class,
-            AchievementNotFoundException.class, DailyMissionNotFoundException.class})
+            AchievementNotFoundException.class, DailyMissionNotFoundException.class,
+            TrainingSessionNotFoundException.class, TrainingResultNotFoundException.class})
     public ResponseEntity<ErrorResponse> handleNotFound(RuntimeException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ErrorResponse.of(HttpStatus.NOT_FOUND.value(), "NOT_FOUND", e.getMessage()));
     }
 
-    @ExceptionHandler({MissingCurrentPasswordException.class, InvalidFileException.class})
+    @ExceptionHandler({MissingCurrentPasswordException.class, InvalidFileException.class,
+            ScenarioRecordNotCompletedException.class, InsufficientHintsException.class})
     public ResponseEntity<ErrorResponse> handleBadRequest(RuntimeException e) {
         return ResponseEntity.badRequest()
                 .body(ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), "INVALID_INPUT", e.getMessage()));
     }
 
-    @ExceptionHandler(ScenarioRecordAccessDeniedException.class)
-    public ResponseEntity<ErrorResponse> handleAccessDenied(ScenarioRecordAccessDeniedException e) {
+    @ExceptionHandler(ScenarioRecordAlreadyCompletedException.class)
+    public ResponseEntity<ErrorResponse> handleScenarioAlreadyCompleted(ScenarioRecordAlreadyCompletedException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of(HttpStatus.CONFLICT.value(), "ALREADY_COMPLETED", e.getMessage()));
+    }
+
+    @ExceptionHandler({ScenarioRecordAccessDeniedException.class, DailyMissionAccessDeniedException.class})
+    public ResponseEntity<ErrorResponse> handleAccessDenied(RuntimeException e) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ErrorResponse.of(HttpStatus.FORBIDDEN.value(), "ACCESS_DENIED", e.getMessage()));
+    }
+
+    @ExceptionHandler(DailyMissionAlreadyCompletedException.class)
+    public ResponseEntity<ErrorResponse> handleAlreadyCompleted(DailyMissionAlreadyCompletedException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of(HttpStatus.CONFLICT.value(), "ALREADY_COMPLETED", e.getMessage()));
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
