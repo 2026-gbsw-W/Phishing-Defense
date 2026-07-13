@@ -32,7 +32,6 @@ llm = ChatOllama(
     temperature=1.0,
 )
 
-# 현재는 메모리 저장 방식이며 DB 연동 시 교체 가능
 # session_id -> 대화 기록
 # session_id -> 분석 리포트
 # session_id -> 수집 증거
@@ -46,8 +45,8 @@ session_hints: dict[str, int] = {}
 
 class ChatRequest(BaseModel):
     message: str
-    session_id: str | None = None       # 없으면 새 세션으로 간주
-    scenario_type: str = "prosecutor"   # 새 세션일 때만 사용됨
+    session_id: str | None = None 
+    scenario_type: str = "prosecutor" 
 
 class EvidenceRequest(BaseModel):
     session_id: str
@@ -146,7 +145,7 @@ def format_conversation(history: list) -> str:
     lines = []
     for msg in history:
         if isinstance(msg, SystemMessage):
-            continue  # 시스템 프롬프트는 분석 대상 아님
+            continue 
         role = "사용자" if isinstance(msg, HumanMessage) else "AI(사기꾼)"
         lines.append(f"{role}: {msg.content}")
     return "\n".join(lines)
@@ -329,35 +328,43 @@ async def voice_call(
 
     await websocket.accept()
 
-    # 1. 세션 생성
+    # 세션 생성
     session_id = str(uuid.uuid4())
 
     session_hints[session_id] = 0
     session_evidences[session_id] = []
 
-
     try:
+        # 1. AI 첫 멘트 생성
 
-        # 2. AI 첫 멘트
         first_response = chat(ChatRequest(
             message="전화가 연결되었습니다. 피싱 상황의 첫 멘트를 시작하세요.",
             session_id=session_id,
             scenario_type=scenario_type
+        ))
 
-))
 
+        # 2. 첫 멘트 TTS 생성
 
-        # 3. TTS 생성
         first_audio = f"response_{uuid.uuid4()}.mp3"
 
-        synthesize_speech(
-            first_response["answer"],
-            first_audio
-        )
+        try:
+            synthesize_speech(
+                first_response["answer"],
+                first_audio
+            )
 
+            with open(first_audio, "rb") as f:
+                voice = f.read()
 
-        with open(first_audio, "rb") as f:
-            voice = f.read()
+        except Exception as e:
+            print("첫 TTS 오류:", e)
+
+            await websocket.send_json({
+                "error": "첫 음성 생성 실패",
+                "message": str(e)
+            })
+            return
 
 
         await websocket.send_json({
@@ -367,25 +374,32 @@ async def voice_call(
 
         await websocket.send_bytes(voice)
 
-        os.remove(first_audio)
+        if os.path.exists(first_audio):
+            os.remove(first_audio)
 
+        # 3. 사용자 음성 반복 처리
 
-        # 4. 사용자 음성 반복
         while True:
 
             audio_data = await websocket.receive_bytes()
 
+
+            # 음성 파일 저장
             input_path = f"temp_{uuid.uuid4()}.wav"
 
             with open(input_path, "wb") as f:
                 f.write(audio_data)
 
+            # STT
             user_text = transcribe_audio(input_path)
 
-            os.remove(input_path)
+            if os.path.exists(input_path):
+                os.remove(input_path)
+
 
             print("사용자:", user_text)
 
+            # LLM 응답 생성
             result = chat(ChatRequest(
                 message=user_text,
                 session_id=session_id,
@@ -394,32 +408,84 @@ async def voice_call(
 
             ai_text = result["answer"]
 
+            # 4. AI 응답 TTS
             output_path = f"response_{uuid.uuid4()}.mp3"
 
-            synthesize_speech(
-                ai_text,
-                output_path
-            )
 
-            with open(output_path, "rb") as f:
-                voice = f.read()
+            try:
 
+                synthesize_speech(
+                    ai_text,
+                    output_path
+                )
+
+                with open(output_path, "rb") as f:
+                    voice = f.read()
+
+
+            except Exception as e:
+
+                print("TTS 오류:", e)
+
+                await websocket.send_json({
+                    "error": "음성 생성 실패",
+                    "message": str(e)
+                })
+
+                continue
+
+            # 텍스트 전달
             await websocket.send_json({
                 "session_id": session_id,
                 "user_text": user_text,
                 "ai_text": ai_text
             })
 
+            # 음성 전달
             await websocket.send_bytes(voice)
 
-            os.remove(output_path)
+
+            if os.path.exists(output_path):
+                os.remove(output_path)
 
     except WebSocketDisconnect:
+
         print("통화 종료")
 
+
+        # 종료 후 리포트 생성
         if session_id in session_histories:
-            end_chat(
-                EndChatRequest(
-                    session_id=session_id
+
+            try:
+
+                end_chat(
+                    EndChatRequest(
+                        session_id=session_id
+                    )
                 )
-            )
+
+                print(
+                    f"리포트 생성 완료: {session_id}"
+                )
+
+
+            except Exception as e:
+
+                print(
+                    "리포트 생성 실패:",
+                    e
+                )
+
+
+    except Exception as e:
+
+        print(
+            "WebSocket 오류:",
+            e
+        )
+
+        try:
+            await websocket.close()
+
+        except:
+            pass
