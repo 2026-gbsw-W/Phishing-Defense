@@ -1,11 +1,15 @@
 package com.phishingdefense.backend.controller;
 
+import com.phishingdefense.backend.dto.user.UserAchievementStatusResponse;
+import com.phishingdefense.backend.dto.user.UserInventoryResponse;
 import com.phishingdefense.backend.dto.user.UserProfileResponse;
+import com.phishingdefense.backend.dto.user.UserStatisticsResponse;
 import com.phishingdefense.backend.dto.user.UserUpdateRequest;
 import com.phishingdefense.backend.security.UserPrincipal;
 import com.phishingdefense.backend.service.FileStorageService;
 import com.phishingdefense.backend.service.UserService;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -57,5 +61,22 @@ public class UserController {
             @RequestParam("file") MultipartFile file
     ) {
         return ResponseEntity.ok(userService.updateProfileImage(principal.getUserId(), file));
+    }
+
+    @GetMapping("/me/statistics")
+    public ResponseEntity<UserStatisticsResponse> getMyStatistics(@AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(userService.getStatistics(principal.getUserId()));
+    }
+
+    @GetMapping("/me/achievements")
+    public ResponseEntity<List<UserAchievementStatusResponse>> getMyAchievements(
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(userService.getAchievements(principal.getUserId()));
+    }
+
+    @GetMapping("/me/inventory")
+    public ResponseEntity<UserInventoryResponse> getMyInventory(@AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(userService.getInventory(principal.getUserId()));
     }
 }

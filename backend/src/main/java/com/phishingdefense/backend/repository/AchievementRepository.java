@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface AchievementRepository extends JpaRepository<Achievement, Integer> {
 
     List<Achievement> findAllByCategory(String category);
+
+    List<Achievement> findAllByOrderByAchievementIdAsc();
 }
