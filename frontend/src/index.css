@@ -476,3 +476,94 @@ h2 {
 .stage1-sms-button {
   align-self: center;
 }
+
+/* ---- Stage2_Chat component ---- */
+.stage2-chat-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.stage2-chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 52vh;
+  overflow-y: auto;
+  padding: 4px 2px;
+}
+.stage2-chat-bubble {
+  position: relative;
+  max-width: 82%;
+  padding: 12px 14px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.stage2-chat-bubble-text {
+  font-size: 14px;
+  color: var(--text);
+  white-space: pre-wrap;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+.stage2-chat-bubble-ai {
+  align-self: flex-start;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-top-left-radius: 0;
+}
+.stage2-chat-bubble-user {
+  align-self: flex-end;
+  background: var(--alarm-dim);
+  border: 1px solid rgba(255, 69, 63, 0.25);
+  border-top-right-radius: 0;
+}
+.stage2-chat-mark-btn {
+  display: inline-block;
+  margin-top: 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  padding: 2px 0;
+}
+.stage2-chat-mark-btn:disabled {
+  color: var(--safe);
+  cursor: default;
+}
+.stage2-chat-hint-text {
+  font-size: 13px;
+  color: var(--text-dim);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 10px 12px;
+}
+.stage2-chat-hint-text .mono {
+  color: var(--alarm);
+  font-size: 11px;
+  margin-right: 4px;
+}
+.stage2-chat-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.stage2-chat-input-row {
+  display: flex;
+  gap: 8px;
+}
+.stage2-chat-input {
+  flex: 1;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 12px 14px;
+  font-size: 15px;
+}
+.stage2-chat-input:focus {
+  outline: none;
+  border-color: rgba(255, 69, 63, 0.5);
+}
