@@ -22,7 +22,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="auth-page hex-bg">
+    <div className="auth-page">
       <div className="card auth-card">
         <span className="eyebrow">PHISHING DEFENSE</span>
         <h1 className="auth-title">다시 만나서 반가워요</h1>

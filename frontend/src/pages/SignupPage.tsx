@@ -22,7 +22,7 @@ export function SignupPage() {
   }
 
   return (
-    <div className="auth-page hex-bg">
+    <div className="auth-page">
       <div className="card auth-card">
         <span className="eyebrow">PHISHING DEFENSE</span>
         <h1 className="auth-title">피싱 헌터 되기</h1>

@@ -75,7 +75,7 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="profile-page hex-bg">
+    <div className="profile-page">
       <div className="profile-wrap">
         <Link to="/home" className="profile-back-link accent">
           ← 홈으로

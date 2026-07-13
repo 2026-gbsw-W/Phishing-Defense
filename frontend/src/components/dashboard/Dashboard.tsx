@@ -25,7 +25,7 @@ export function Dashboard() {
   const levelInfo = getLevelInfo(session.totalXp)
 
   return (
-    <div className="dashboard-page hex-bg">
+    <div className="dashboard-page">
       <div className="dashboard-wrap">
         <header className="card dashboard-header">
           <div className="dashboard-header-row">
