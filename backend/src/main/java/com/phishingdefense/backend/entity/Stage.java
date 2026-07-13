@@ -32,9 +32,6 @@ public class Stage {
     @Column(name = "title")
     private String title;
 
-    @Column(name = "context", columnDefinition = "LONGTEXT")
-    private String context;
-
     @Column(name = "initial_message")
     private String initialMessage;
 

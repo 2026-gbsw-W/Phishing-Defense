@@ -1,5 +1,7 @@
 package com.phishingdefense.backend.service;
 
+import com.phishingdefense.backend.client.AiClient;
+import com.phishingdefense.backend.client.AiScenarioTypeMapper;
 import com.phishingdefense.backend.dto.game.AiRiskAnalysisResponse;
 import com.phishingdefense.backend.dto.game.EvidenceAnalysisResponse;
 import com.phishingdefense.backend.dto.game.EvidenceConfirmRequest;
@@ -11,10 +13,13 @@ import com.phishingdefense.backend.dto.game.ReportClaimResponse;
 import com.phishingdefense.backend.dto.game.ScenarioReportResponse;
 import com.phishingdefense.backend.dto.game.ScenarioStartResponse;
 import com.phishingdefense.backend.dto.game.ScenarioStatusResponse;
+import com.phishingdefense.backend.dto.training.AiChatMessageResponse;
+import com.phishingdefense.backend.entity.ChatHistory;
 import com.phishingdefense.backend.entity.Evidence;
 import com.phishingdefense.backend.entity.ScenarioRecord;
 import com.phishingdefense.backend.entity.Stage;
 import com.phishingdefense.backend.entity.TrainingResult;
+import com.phishingdefense.backend.entity.TrainingSession;
 import com.phishingdefense.backend.entity.User;
 import com.phishingdefense.backend.exception.ReportAlreadyClaimedException;
 import com.phishingdefense.backend.exception.ScenarioRecordAccessDeniedException;
@@ -23,6 +28,7 @@ import com.phishingdefense.backend.exception.ScenarioRecordNotCompletedException
 import com.phishingdefense.backend.exception.ScenarioRecordNotFoundException;
 import com.phishingdefense.backend.exception.StageNotFoundException;
 import com.phishingdefense.backend.exception.UserNotFoundException;
+import com.phishingdefense.backend.repository.ChatHistoryRepository;
 import com.phishingdefense.backend.repository.EvidenceRepository;
 import com.phishingdefense.backend.repository.ScenarioRecordRepository;
 import com.phishingdefense.backend.repository.StageRepository;
@@ -46,6 +52,8 @@ public class ScenarioPlayService {
 
     private static final String CORRECT_JUDGMENT_FEEDBACK = "정확한 판단입니다! 다음 단계로 진행합니다.";
     private static final String INCORRECT_JUDGMENT_FEEDBACK = "다시 한번 생각해보세요.";
+    private static final String SCENARIO_START_MESSAGE = "안녕하세요.";
+    private static final String AI_MODEL_NAME = "ai-server";
 
     private static final int DEFAULT_REPORT_HANDLING_SCORE = 15;
     private static final int BASE_XP = 150;
@@ -58,6 +66,8 @@ public class ScenarioPlayService {
     private final EvidenceExtractor evidenceExtractor;
     private final TrainingSessionRepository trainingSessionRepository;
     private final TrainingResultRepository trainingResultRepository;
+    private final ChatHistoryRepository chatHistoryRepository;
+    private final AiClient aiClient;
 
     @Transactional
     public ScenarioStartResponse start(Long userId, Long scenarioId) {
@@ -67,12 +77,21 @@ public class ScenarioPlayService {
         ScenarioRecord record = ScenarioRecord.start(userId, stage.getChapterId(), stage.getStageId());
         ScenarioRecord saved = scenarioRecordRepository.save(record);
 
-        for (RequiredEvidenceEntry entry : evidenceExtractor.match(stage.getRequiredEvidence(), stage.getInitialMessage())) {
+        String scenarioType = AiScenarioTypeMapper.map(stage.getPhishingType());
+        AiChatMessageResponse response = aiClient.chat(null, SCENARIO_START_MESSAGE, scenarioType);
+        String openingMessage = response.answer();
+
+        trainingSessionRepository.save(
+                TrainingSession.create(response.sessionId(), userId, saved.getRecordId(), scenarioType));
+        chatHistoryRepository.save(
+                ChatHistory.aiMessage(saved.getRecordId(), 0, openingMessage, AI_MODEL_NAME, null));
+
+        for (RequiredEvidenceEntry entry : evidenceExtractor.match(stage.getRequiredEvidence(), openingMessage)) {
             evidenceRepository.save(
                     Evidence.discovered(saved.getRecordId(), entry.type(), entry.value(), 0, entry.importance()));
         }
 
-        return new ScenarioStartResponse(saved.getRecordId(), stage.getInitialMessage(), LocalDateTime.now());
+        return new ScenarioStartResponse(saved.getRecordId(), openingMessage, LocalDateTime.now());
     }
 
     public ScenarioStatusResponse getStatus(Long userId, Long recordId) {
