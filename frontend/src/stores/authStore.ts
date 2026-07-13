@@ -17,6 +17,7 @@ interface AuthState {
   logout: () => void
   hydrate: () => Promise<void>
   updateXp: (newTotalXp: number) => void
+  setProfile: (profile: Partial<AuthSession>) => void
 }
 
 function buildSession(auth: AuthResult, profile: UserProfile): AuthSession {
@@ -109,5 +110,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!session) return
     const { level } = getLevelInfo(newTotalXp)
     set({ session: { ...session, totalXp: newTotalXp, level } })
+  },
+
+  setProfile(profile) {
+    const session = get().session
+    if (!session) return
+    set({ session: { ...session, ...profile } })
   },
 }))

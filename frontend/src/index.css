@@ -291,9 +291,25 @@ h2 {
   flex-direction: column;
   gap: 12px;
 }
+.dashboard-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
 .dashboard-nickname {
   font-size: 20px;
   font-weight: 900;
+}
+.dashboard-profile-link {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-decoration: none;
+  border: 1px solid var(--line);
+  border-radius: 100px;
+  padding: 6px 14px;
+  flex-shrink: 0;
 }
 .dashboard-level-row {
   display: flex;
@@ -866,4 +882,88 @@ h2 {
   font-size: 14px;
   font-weight: 700;
   color: var(--amber);
+}
+
+/* ---- Profile page ---- */
+.profile-page {
+  min-height: 100%;
+  padding: 32px 20px 48px;
+}
+.profile-wrap {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.profile-back-link {
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.profile-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+.profile-avatar-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.profile-avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 100px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+}
+.profile-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-size: 32px;
+  font-weight: 900;
+}
+.profile-avatar-upload-label {
+  display: inline-flex;
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.profile-avatar-upload-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+.profile-email {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.profile-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+}
+.field textarea {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 12px 14px;
+  font-size: 15px;
+  resize: vertical;
+}
+.field textarea:focus {
+  outline: none;
+  border-color: rgba(255, 69, 63, 0.5);
 }

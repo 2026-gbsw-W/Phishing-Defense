@@ -62,4 +62,20 @@ describe('authStore', () => {
     await useAuthStore.getState().hydrate()
     expect(useAuthStore.getState().session).toBeNull()
   })
+
+  it('setProfile merges partial profile fields into the current session', async () => {
+    await useAuthStore.getState().signup({ email: 'store5@test.com', password: 'pw123456', nickname: '헌터' })
+
+    useAuthStore.getState().setProfile({ nickname: '새헌터', bio: '안녕하세요' })
+
+    expect(useAuthStore.getState().session?.nickname).toBe('새헌터')
+    expect(useAuthStore.getState().session?.bio).toBe('안녕하세요')
+    // Unrelated fields are preserved, not wiped out by the partial update.
+    expect(useAuthStore.getState().session?.email).toBe('store5@test.com')
+  })
+
+  it('setProfile is a no-op when there is no session', () => {
+    useAuthStore.getState().setProfile({ nickname: '무시됨' })
+    expect(useAuthStore.getState().session).toBeNull()
+  })
 })

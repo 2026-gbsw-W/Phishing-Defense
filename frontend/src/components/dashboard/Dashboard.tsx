@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useChapters } from '@hooks/useChapters'
 import { useAuth } from '@hooks/useAuth'
@@ -28,7 +28,12 @@ export function Dashboard() {
     <div className="dashboard-page hex-bg">
       <div className="dashboard-wrap">
         <header className="card dashboard-header">
-          <p className="dashboard-nickname">{session.nickname}</p>
+          <div className="dashboard-header-row">
+            <p className="dashboard-nickname">{session.nickname}</p>
+            <Link to="/profile" className="dashboard-profile-link">
+              내 프로필
+            </Link>
+          </div>
           <div className="dashboard-level-row">
             <span className="mono">
               Lv.{levelInfo.level}
