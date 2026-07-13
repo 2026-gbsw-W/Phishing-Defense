@@ -45,6 +45,7 @@ dependencies:
   # UI 유틸
   flutter_screenutil: ^5.9.3
   url_launcher: ^6.3.1
+  google_fonts: ^6.2.1
 
   # TTS
   flutter_tts: ^4.2.2
