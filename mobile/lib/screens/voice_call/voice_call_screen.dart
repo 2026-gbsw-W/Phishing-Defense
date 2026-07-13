@@ -5,14 +5,13 @@ import 'dart:math';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:record/record.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../../models/game/stage.dart';
+import '../../services/game_api.dart';
 import '../../theme/app_colors.dart';
 import '../stage3_judge/judge_screen.dart';
-
-const String _kAiWsBaseUrl = 'ws://localhost:8000';
 
 // ─── 피싱 유형 → 발신자 정보 매핑 ────────────────────────────────────────────
 
@@ -134,13 +133,8 @@ class VoiceCallScreen extends StatefulWidget {
 
 class _VoiceCallScreenState extends State<VoiceCallScreen>
     with TickerProviderStateMixin {
-  // ── 서버 연결 ──────────────────────────────────────────────────────────────
-  WebSocketChannel? _channel;
-  StreamSubscription? _wsSub;
-  bool _expectingAudio = false;
-  String? _sessionId; // ignore: unused_field
-
-  // ── 오디오 ─────────────────────────────────────────────────────────────────
+  // ── TTS (초기 인사 전용) + 오디오 ──────────────────────────────────────────
+  late final FlutterTts _tts;
   final AudioPlayer _player = AudioPlayer();
   final AudioRecorder _recorder = AudioRecorder();
 
@@ -154,6 +148,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   final _msgs = <_Msg>[];
   String _currentDanger = '';
   final _logScrollCtrl = ScrollController();
+  final _savedEvidenceTexts = <String>[];
+
+  // ── 힌트 ───────────────────────────────────────────────────────────────────
+  bool _hintLoading = false;
 
   // ── 타이머 ─────────────────────────────────────────────────────────────────
   int _seconds = 0;
@@ -187,83 +185,80 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       if (mounted) setState(() => _seconds++);
     });
 
-    _connect();
+    _tts = FlutterTts();
+    _initTts();
+    _fetchInitialGreeting();
   }
 
-  // ── WebSocket ──────────────────────────────────────────────────────────────
+  // ── TTS 초기화 ─────────────────────────────────────────────────────────────
 
-  void _connect() {
-    final type = widget.stage.phishingType.isNotEmpty
-        ? _mapToAiScenario(widget.stage.phishingType)
-        : 'prosecutor';
-
-    _channel = WebSocketChannel.connect(
-      Uri.parse('$_kAiWsBaseUrl/voice-call/$type'),
-    );
-    _wsSub = _channel!.stream.listen(
-      _onWsData,
-      onError: (_) => _endCall(),
-      onDone: () { if (_state != _CallState.ended) _endCall(); },
-    );
-  }
-
-  String _mapToAiScenario(String type) {
-    const map = {
-      'smishing_bank': 'bank',
-      'smishing_telecom': 'delivery',
-      'smishing_loan': 'loan',
-    };
-    return map[type] ?? type;
-  }
-
-  void _onWsData(dynamic data) {
-    if (data is String) {
-      final json = jsonDecode(data) as Map<String, dynamic>;
-      _sessionId = json['session_id'] as String?;
-      final aiText = json['ai_text'] as String? ?? '';
-      final userText = json['user_text'] as String?;
-      final danger = _detectDanger(aiText);
-
-      setState(() {
-        if (userText != null && userText.isNotEmpty) {
-          _msgs.add(_Msg(text: userText, isUser: true));
-        }
-        if (aiText.isNotEmpty) {
-          _msgs.add(_Msg(text: aiText, isUser: false, danger: danger));
-        }
-        _currentDanger = danger ?? '';
-        _state = _CallState.aiSpeaking;
-        _expectingAudio = true;
-      });
-      _scrollLog();
-    } else if (data is List<int> && _expectingAudio) {
-      _expectingAudio = false;
-      _playBytes(data);
-    }
-  }
-
-  Future<void> _playBytes(List<int> bytes) async {
-    if (_isMuted) {
-      if (mounted) setState(() => _state = _CallState.userTurn);
-      return;
-    }
-    final file = File(
-      '${Directory.systemTemp.path}/ai_${DateTime.now().millisecondsSinceEpoch}.mp3',
-    );
-    await file.writeAsBytes(bytes);
-    await _player.stop();
-    await _player.play(DeviceFileSource(file.path));
-    _player.onPlayerComplete.first.then((_) {
+  Future<void> _initTts() async {
+    await _tts.setLanguage('ko-KR');
+    await _tts.setSpeechRate(0.45);
+    _tts.setCompletionHandler(() {
       if (mounted && _state == _CallState.aiSpeaking) {
         setState(() => _state = _CallState.userTurn);
       }
     });
   }
 
+  // ── AI 첫 인사 (Spring Boot → AI 서버, TTS로 재생) ────────────────────────
+
+  Future<void> _fetchInitialGreeting() async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+    try {
+      final result = await GameApi.sendChat(widget.recordId, '여보세요');
+      if (!mounted) return;
+      final danger = _detectDanger(result.aiResponse);
+      setState(() {
+        _msgs.add(_Msg(text: result.aiResponse, isUser: false, danger: danger));
+        _currentDanger = danger ?? '';
+        _state = _CallState.aiSpeaking;
+      });
+      _scrollLog();
+      if (!_isMuted) {
+        await _tts.speak(result.aiResponse);
+      } else {
+        setState(() => _state = _CallState.userTurn);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _state = _CallState.userTurn);
+    }
+  }
+
+  // ── AI 응답 오디오 재생 (base64 → 파일 → AudioPlayer) ─────────────────────
+
+  Future<void> _playBase64Audio(String base64Audio, String contentType) async {
+    await _tts.stop();
+    if (base64Audio.isEmpty || _isMuted) {
+      if (mounted) setState(() => _state = _CallState.userTurn);
+      return;
+    }
+    try {
+      final bytes = base64Decode(base64Audio);
+      final ext = contentType.contains('wav') ? 'wav' : 'mp3';
+      final file = File(
+        '${Directory.systemTemp.path}/ai_resp_${DateTime.now().millisecondsSinceEpoch}.$ext',
+      );
+      await file.writeAsBytes(bytes);
+      await _player.stop();
+      await _player.play(DeviceFileSource(file.path));
+      _player.onPlayerComplete.first.then((_) {
+        if (mounted && _state == _CallState.aiSpeaking) {
+          setState(() => _state = _CallState.userTurn);
+        }
+      });
+    } catch (_) {
+      if (mounted) setState(() => _state = _CallState.userTurn);
+    }
+  }
+
   // ── 마이크 ─────────────────────────────────────────────────────────────────
 
   Future<void> _startRecording() async {
     if (_isMuted || _state != _CallState.userTurn) return;
+    await _tts.stop();
     final ok = await _recorder.hasPermission();
     if (!ok) return;
     setState(() => _state = _CallState.recording);
@@ -279,15 +274,41 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     );
   }
 
-  Future<void> _stopRecording() async {
+  Future<void> _stopRecordingAndSend() async {
     if (_state != _CallState.recording) return;
     setState(() => _state = _CallState.processing);
     final path = await _recorder.stop();
-    if (path == null) { setState(() => _state = _CallState.userTurn); return; }
-    final bytes = await File(path).readAsBytes();
-    await File(path).delete();
-    _channel?.sink.add(bytes);
-    _expectingAudio = false;
+    if (path == null) {
+      setState(() => _state = _CallState.userTurn);
+      return;
+    }
+    final audioBytes = await File(path).readAsBytes();
+    try { await File(path).delete(); } catch (_) {}
+
+    try {
+      final result = await GameApi.sendVoiceMessage(widget.recordId, audioBytes);
+      if (!mounted) return;
+      final danger = _detectDanger(result.aiText);
+      setState(() {
+        if (result.userText.isNotEmpty) {
+          _msgs.add(_Msg(text: result.userText, isUser: true));
+        }
+        if (result.aiText.isNotEmpty) {
+          _msgs.add(_Msg(text: result.aiText, isUser: false, danger: danger));
+        }
+        _currentDanger = danger ?? '';
+        _state = _CallState.aiSpeaking;
+      });
+      _scrollLog();
+      await _playBase64Audio(result.audioBase64, result.audioContentType);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _state = _CallState.userTurn);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('전송 오류: $e')),
+        );
+      }
+    }
   }
 
   // ── 통화 종료 ──────────────────────────────────────────────────────────────
@@ -295,15 +316,18 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   void _endCall() {
     if (_state == _CallState.ended) return;
     setState(() => _state = _CallState.ended);
-    _channel?.sink.close();
     _timer?.cancel();
+    _tts.stop();
     _player.stop();
     _recorder.stop();
     if (mounted) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => JudgeScreen(recordId: widget.recordId),
+          builder: (_) => JudgeScreen(
+            recordId: widget.recordId,
+            manualEvidence: List.unmodifiable(_savedEvidenceTexts),
+          ),
         ),
       );
     }
@@ -394,7 +418,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) => Column(
+      builder: (sheetCtx) => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
@@ -417,9 +441,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                   const Divider(color: AppColors.border, height: 1),
               itemBuilder: (_, i) {
                 final msg = aiMsgs[i];
+                final alreadySaved = _savedEvidenceTexts.contains(msg.text);
                 return ListTile(
                   dense: true,
-                  leading: msg.danger != null
+                  leading: alreadySaved
+                      ? const Icon(Icons.bookmark_rounded,
+                          color: AppColors.safe, size: 18)
+                      : msg.danger != null
                       ? const Icon(Icons.warning_rounded,
                           color: AppColors.alarm, size: 18)
                       : const Icon(Icons.circle, color: AppColors.border, size: 8),
@@ -428,21 +456,14 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textPrimary,
+                          color: alreadySaved
+                              ? AppColors.textSecondary
+                              : AppColors.textPrimary,
                         ),
                   ),
-                  onTap: () {
-                    setState(() {
-                      _msgs.add(_Msg(
-                        text: '🔖 증거 저장됨: "${msg.text}"',
-                        isUser: true,
-                      ));
-                    });
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('증거가 저장되었습니다.')),
-                    );
-                  },
+                  onTap: alreadySaved
+                      ? null
+                      : () => _saveEvidence(sheetCtx, msg.text),
                 );
               },
             ),
@@ -453,13 +474,79 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     );
   }
 
+  Future<void> _saveEvidence(BuildContext sheetCtx, String text) async {
+    Navigator.pop(sheetCtx);
+    setState(() {
+      _savedEvidenceTexts.add(text);
+      _msgs.add(_Msg(text: '증거 저장됨: "$text"', isUser: true));
+    });
+
+    // Spring Boot를 통해 AI 서버 세션에 증거 등록 (보고서 evidenceFeedback에 반영됨)
+    try { await GameApi.saveEvidence(widget.recordId, text); } catch (_) {}
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.bookmark_rounded, color: Colors.white, size: 16),
+              SizedBox(width: 8),
+              Text('증거로 저장됐습니다'),
+            ],
+          ),
+          duration: Duration(seconds: 2),
+          backgroundColor: AppColors.alarm,
+        ),
+      );
+    }
+  }
+
   // ── 의심 신고 ──────────────────────────────────────────────────────────────
 
   void _reportSuspicion() {
     setState(() {
-      _msgs.add(_Msg(text: '🚨 피싱 의심 신고됨 — 통화를 종료합니다.', isUser: true));
+      _msgs.add(_Msg(text: '피싱 의심 신고됨 — 통화를 종료합니다.', isUser: true));
     });
     Future.delayed(const Duration(milliseconds: 800), _endCall);
+  }
+
+  // ── 힌트 (Spring Boot → AI 서버) ──────────────────────────────────────────
+
+  Future<void> _showHint() async {
+    if (_hintLoading) return;
+    setState(() => _hintLoading = true);
+    try {
+      final hint = await GameApi.getHint(widget.recordId);
+      if (!mounted) return;
+      showDialog<void>(
+        context: context,
+        builder: (_) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: const Row(
+            children: [
+              Icon(Icons.lightbulb_outline_rounded, color: AppColors.amber, size: 20),
+              SizedBox(width: 8),
+              Text('힌트'),
+            ],
+          ),
+          content: Text(hint.hintText),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('확인'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('힌트를 불러오지 못했습니다: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _hintLoading = false);
+    }
   }
 
   // ── 키패드 ─────────────────────────────────────────────────────────────────
@@ -509,8 +596,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   @override
   void dispose() {
     _timer?.cancel();
-    _wsSub?.cancel();
-    _channel?.sink.close();
+    _tts.stop();
     _player.dispose();
     _recorder.dispose();
     _pulseCtrl.dispose();
@@ -580,6 +666,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
               onReport: _reportSuspicion,
               onEvidence: _showEvidenceDialog,
               onMemo: _showMemoDialog,
+              onHint: _showHint,
+              hintLoading: _hintLoading,
+              evidenceCount: _savedEvidenceTexts.length,
             ),
 
             const SizedBox(height: 16),
@@ -594,7 +683,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
               onSpeakerToggle: () => setState(() => _isSpeaker = !_isSpeaker),
               onKeypad: _showKeypad, // ignore: avoid_redundant_argument_values
               onMicDown: _startRecording,
-              onMicUp: _stopRecording,
+              onMicUp: _stopRecordingAndSend,
               onEndCall: _confirmEndCall,
             ),
 
@@ -978,11 +1067,17 @@ class _PhishingActions extends StatelessWidget {
     required this.onReport,
     required this.onEvidence,
     required this.onMemo,
+    required this.onHint,
+    required this.hintLoading,
+    required this.evidenceCount,
   });
 
   final VoidCallback onReport;
   final VoidCallback onEvidence;
   final VoidCallback onMemo;
+  final VoidCallback? onHint;
+  final bool hintLoading;
+  final int evidenceCount;
 
   @override
   Widget build(BuildContext context) {
@@ -998,16 +1093,25 @@ class _PhishingActions extends StatelessWidget {
               onTap: onReport,
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
             child: _ActionChip(
               icon: Icons.bookmark_add_rounded,
-              label: '증거 저장',
+              label: evidenceCount > 0 ? '증거 ($evidenceCount)' : '증거 저장',
               color: AppColors.amber,
               onTap: onEvidence,
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _ActionChip(
+              icon: hintLoading ? Icons.hourglass_empty_rounded : Icons.lightbulb_outline_rounded,
+              label: '힌트',
+              color: onHint != null ? AppColors.safe : AppColors.textSecondary,
+              onTap: onHint,
+            ),
+          ),
+          const SizedBox(width: 8),
           Expanded(
             child: _ActionChip(
               icon: Icons.edit_note_rounded,
@@ -1033,7 +1137,7 @@ class _ActionChip extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {

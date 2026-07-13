@@ -6,9 +6,14 @@ import '../../theme/app_colors.dart';
 import '../stage5_report/report_screen.dart';
 
 class EvidenceScreen extends StatefulWidget {
-  const EvidenceScreen({super.key, required this.recordId});
+  const EvidenceScreen({
+    super.key,
+    required this.recordId,
+    this.manualEvidence = const [],
+  });
 
   final int recordId;
+  final List<String> manualEvidence;
 
   @override
   State<EvidenceScreen> createState() => _EvidenceScreenState();
@@ -113,26 +118,52 @@ class _EvidenceScreenState extends State<EvidenceScreen> {
                     }
 
                     final items = snapshot.data!;
-                    if (items.isEmpty) {
+                    final hasManual = widget.manualEvidence.isNotEmpty;
+                    if (items.isEmpty && !hasManual) {
                       return const _EmptyState();
                     }
-                    return ListView.separated(
-                      itemCount: items.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 10),
-                      itemBuilder: (_, i) {
-                        final item = items[i];
-                        return _EvidenceTile(
-                          item: item,
-                          selected: _selectedIds.contains(item.evidenceId),
-                          onToggle: (checked) => setState(() {
-                            if (checked) {
-                              _selectedIds.add(item.evidenceId);
-                            } else {
-                              _selectedIds.remove(item.evidenceId);
-                            }
-                          }),
-                        );
-                      },
+                    return ListView(
+                      children: [
+                        if (hasManual) ...[
+                          _SectionLabel(
+                            icon: Icons.bookmark_rounded,
+                            label: '직접 저장한 증거',
+                            color: AppColors.alarm,
+                          ),
+                          const SizedBox(height: 8),
+                          ...widget.manualEvidence.map(
+                            (text) => Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: _ManualEvidenceTile(text: text),
+                            ),
+                          ),
+                          if (items.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            _SectionLabel(
+                              icon: Icons.auto_awesome_rounded,
+                              label: 'AI가 발견한 증거',
+                              color: AppColors.safe,
+                            ),
+                            const SizedBox(height: 8),
+                          ],
+                        ],
+                        ...items.map(
+                          (item) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _EvidenceTile(
+                              item: item,
+                              selected: _selectedIds.contains(item.evidenceId),
+                              onToggle: (checked) => setState(() {
+                                if (checked) {
+                                  _selectedIds.add(item.evidenceId);
+                                } else {
+                                  _selectedIds.remove(item.evidenceId);
+                                }
+                              }),
+                            ),
+                          ),
+                        ),
+                      ],
                     );
                   },
                 ),
@@ -166,6 +197,61 @@ class _EvidenceScreenState extends State<EvidenceScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
+        ),
+      ],
+    );
+  }
+}
+
+class _ManualEvidenceTile extends StatelessWidget {
+  const _ManualEvidenceTile({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.alarm.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: AppColors.alarm.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.bookmark_rounded, color: AppColors.alarm, size: 18),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text('"$text"', style: textTheme.bodyMedium),
+          ),
+        ],
       ),
     );
   }
@@ -250,27 +336,29 @@ class _EvidenceTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            selected ? Icons.check_box_rounded : Icons.check_box_outline_blank,
-            color: selected ? AppColors.safe : AppColors.textSecondary,
+    return GestureDetector(
+      onTap: () => onToggle(!selected),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(
+            color: selected ? AppColors.safe.withValues(alpha: 0.5) : AppColors.border,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: GestureDetector(
-              onTap: () => onToggle(!selected),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              selected ? Icons.check_box_rounded : Icons.check_box_outline_blank,
+              color: selected ? AppColors.safe : AppColors.textSecondary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
               child: Text('"${item.value}"', style: textTheme.bodyMedium),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

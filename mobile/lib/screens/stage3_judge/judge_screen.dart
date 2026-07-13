@@ -5,9 +5,14 @@ import '../../theme/app_colors.dart';
 import '../stage4_evidence/evidence_screen.dart';
 
 class JudgeScreen extends StatefulWidget {
-  const JudgeScreen({super.key, required this.recordId});
+  const JudgeScreen({
+    super.key,
+    required this.recordId,
+    this.manualEvidence = const [],
+  });
 
   final int recordId;
+  final List<String> manualEvidence;
 
   @override
   State<JudgeScreen> createState() => _JudgeScreenState();
@@ -54,7 +59,10 @@ class _JudgeScreenState extends State<JudgeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => EvidenceScreen(recordId: widget.recordId),
+        builder: (_) => EvidenceScreen(
+          recordId: widget.recordId,
+          manualEvidence: widget.manualEvidence,
+        ),
       ),
     );
   }

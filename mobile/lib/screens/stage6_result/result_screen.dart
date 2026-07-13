@@ -40,6 +40,11 @@ class _ResultScreenState extends State<ResultScreen>
   }
 
   Future<ScenarioReport> _loadReport() async {
+    // AI 대화 분석 요청 — 아직 종료 안 됐으면 지금 실행, 이미 됐으면 무시
+    try {
+      await GameApi.endTraining(widget.recordId);
+    } catch (_) {}
+
     final report = await GameApi.getReport(widget.recordId);
 
     try {
@@ -144,6 +149,10 @@ class _ResultScreenState extends State<ResultScreen>
                         icon: Icons.gavel_rounded,
                         content: report.detailedFeedback,
                       ),
+                      if (report.aiAnalysis != null) ...[
+                        const SizedBox(height: 16),
+                        _AiAnalysisSection(analysis: report.aiAnalysis!),
+                      ],
                       const SizedBox(height: 16),
                       _EvidenceAnalysisSection(
                         analysis: report.evidenceAnalysis,
@@ -321,6 +330,217 @@ class _AnalysisSection extends StatelessWidget {
             style: textTheme.bodyMedium?.copyWith(
               color: AppColors.textPrimary,
               height: 1.6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AiAnalysisSection extends StatelessWidget {
+  const _AiAnalysisSection({required this.analysis});
+
+  final AiRiskAnalysis analysis;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final riskColor = analysis.riskScore >= 70
+        ? AppColors.alarm
+        : analysis.riskScore >= 40
+        ? AppColors.amber
+        : AppColors.safe;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.psychology_rounded, color: AppColors.alarm, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'AI 대화 분석',
+                style: textTheme.labelLarge?.copyWith(color: AppColors.alarm),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: riskColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '위험도 ${analysis.riskScore}점',
+                  style: textTheme.labelSmall?.copyWith(
+                    color: riskColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // 위험 신호 체크리스트
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              _RiskChip(label: '개인정보 요구', active: analysis.personalInfoRequested),
+              _RiskChip(label: '계좌번호 요구', active: analysis.accountNumberRequested),
+              _RiskChip(label: '금전 요구', active: analysis.moneyRequested),
+              _RiskChip(label: '긴급성 조성', active: analysis.urgencyCreated),
+              _RiskChip(label: '기관 사칭', active: analysis.authorityImpersonation),
+              _RiskChip(label: '의심 링크', active: analysis.suspiciousLink),
+            ],
+          ),
+
+          if (analysis.dangerousMessages.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Text(
+              '위험 발언',
+              style: textTheme.labelMedium?.copyWith(color: AppColors.alarm),
+            ),
+            const SizedBox(height: 6),
+            ...analysis.dangerousMessages.map(
+              (msg) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.warning_amber_rounded,
+                        color: AppColors.alarm, size: 14),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        msg,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: AppColors.alarm.withValues(alpha: 0.85),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+
+          if (analysis.goodPoints.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            const Divider(color: AppColors.border),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Icon(Icons.thumb_up_rounded, color: AppColors.safe, size: 16),
+                const SizedBox(width: 6),
+                Text('잘한 점',
+                    style: textTheme.labelMedium?.copyWith(color: AppColors.safe)),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              analysis.goodPoints,
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppColors.textPrimary,
+                height: 1.6,
+              ),
+            ),
+          ],
+
+          if (analysis.mistakes.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(Icons.thumb_down_rounded, color: AppColors.amber, size: 16),
+                const SizedBox(width: 6),
+                Text('부족한 점',
+                    style: textTheme.labelMedium?.copyWith(color: AppColors.amber)),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              analysis.mistakes,
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppColors.textPrimary,
+                height: 1.6,
+              ),
+            ),
+          ],
+
+          if (analysis.userFellForIt) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.alarm.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: AppColors.alarm.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline_rounded,
+                      color: AppColors.alarm, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '대화 중 피싱 수법에 넘어간 징후가 감지됐습니다.',
+                      style: textTheme.bodySmall?.copyWith(color: AppColors.alarm),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _RiskChip extends StatelessWidget {
+  const _RiskChip({required this.label, required this.active});
+
+  final String label;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: active
+            ? AppColors.alarm.withValues(alpha: 0.15)
+            : AppColors.surface,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: active
+              ? AppColors.alarm.withValues(alpha: 0.5)
+              : AppColors.border,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            active ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
+            size: 12,
+            color: active ? AppColors.alarm : AppColors.textSecondary,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: active ? AppColors.alarm : AppColors.textSecondary,
+              fontWeight: active ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
         ],
