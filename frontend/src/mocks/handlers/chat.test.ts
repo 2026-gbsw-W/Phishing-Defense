@@ -40,6 +40,9 @@ describe('chat mock handlers', () => {
     const res = await fetch(`${BASE}/chat/${recordId}/history`, { headers: { Authorization: `Bearer ${token}` } })
     const body = await res.json()
     expect(body.length).toBe(3) // initial SMS + 1 user message + 1 AI response = 3 messages
+    expect(body[0].stage).toBe(1) // initial SMS is seeded before Stage 2 chat starts
+    expect(body[1].stage).toBe(2)
+    expect(body[2].stage).toBe(2)
   })
 
   it('gives a hint and decrements remaining hints', async () => {

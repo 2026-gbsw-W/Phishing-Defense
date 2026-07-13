@@ -39,6 +39,7 @@ export interface ChatMessage {
   sender: ChatSender
   message: string
   timestamp: string
+  stage: Stage
 }
 
 export interface ChatSendResponse {

@@ -35,7 +35,13 @@ export const gameHandlers = [
     if (!userId) return HttpResponse.json({ message: 'unauthorized' }, { status: 401 })
 
     const record = mockDb.createRecord(userId, SCENARIO_1_1.scenarioId)
-    record.chatHistory.push({ turn: 0, sender: 'ai', message: INITIAL_SMS, timestamp: new Date().toISOString() })
+    record.chatHistory.push({
+      turn: 0,
+      sender: 'ai',
+      message: INITIAL_SMS,
+      timestamp: new Date().toISOString(),
+      stage: 1,
+    })
 
     return HttpResponse.json(
       { record_id: record.recordId, initial_message: INITIAL_SMS, timestamp: new Date().toISOString() },

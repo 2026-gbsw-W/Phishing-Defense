@@ -26,11 +26,11 @@ export const chatHandlers = [
     const turn = record.currentTurn + 1
     const now = new Date().toISOString()
 
-    record.chatHistory.push({ turn, sender: 'user', message, timestamp: now })
+    record.chatHistory.push({ turn, sender: 'user', message, timestamp: now, stage })
 
     const isPolice = stage === 5
     const aiReply = isPolice ? policeReplyForTurn(turn) : criminalReplyForTurn(turn)
-    record.chatHistory.push({ turn, sender: 'ai', message: aiReply, timestamp: now })
+    record.chatHistory.push({ turn, sender: 'ai', message: aiReply, timestamp: now, stage })
 
     record.currentTurn = turn
     if (isPolice) record.policeTurnsCompleted = turn
@@ -53,7 +53,13 @@ export const chatHandlers = [
     if (!record) return HttpResponse.json({ message: 'not found' }, { status: 404 })
 
     return HttpResponse.json(
-      record.chatHistory.map((m) => ({ turn: m.turn, sender: m.sender, message: m.message, timestamp: m.timestamp })),
+      record.chatHistory.map((m) => ({
+        turn: m.turn,
+        sender: m.sender,
+        message: m.message,
+        timestamp: m.timestamp,
+        stage: m.stage,
+      })),
     )
   }),
 

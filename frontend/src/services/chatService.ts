@@ -6,6 +6,7 @@ interface HistoryWire {
   sender: ChatMessage['sender']
   message: string
   timestamp: string
+  stage: Stage
 }
 
 interface SendWire {
@@ -28,7 +29,13 @@ interface EvidenceMarkWire {
 export const chatService = {
   async getHistory(recordId: number): Promise<ChatMessage[]> {
     const { data } = await apiClient.get<HistoryWire[]>(`/api/v1/chat/${recordId}/history`)
-    return data
+    return data.map((m) => ({
+      turn: m.turn,
+      sender: m.sender,
+      message: m.message,
+      timestamp: m.timestamp,
+      stage: m.stage,
+    }))
   },
 
   async sendMessage(recordId: number, message: string, stage: Stage): Promise<ChatSendResponse> {
