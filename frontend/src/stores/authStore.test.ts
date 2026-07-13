@@ -36,4 +36,30 @@ describe('authStore', () => {
     expect(useAuthStore.getState().session?.totalXp).toBe(4000)
     expect(useAuthStore.getState().session?.level).toBe(5)
   })
+
+  it('hydrate restores the session from a persisted token', async () => {
+    await useAuthStore.getState().signup({ email: 'store4@test.com', password: 'pw123456', nickname: '헌터' })
+    const token = localStorage.getItem('auth_token')
+    useAuthStore.setState({ session: null })
+    expect(useAuthStore.getState().session).toBeNull()
+
+    await useAuthStore.getState().hydrate()
+
+    expect(useAuthStore.getState().session?.nickname).toBe('헌터')
+    expect(localStorage.getItem('auth_token')).toBe(token)
+  })
+
+  it('hydrate clears the token when the persisted session is no longer valid', async () => {
+    localStorage.setItem('auth_token', 'mock-jwt.999999')
+
+    await useAuthStore.getState().hydrate()
+
+    expect(useAuthStore.getState().session).toBeNull()
+    expect(localStorage.getItem('auth_token')).toBeNull()
+  })
+
+  it('hydrate is a no-op when there is no persisted token', async () => {
+    await useAuthStore.getState().hydrate()
+    expect(useAuthStore.getState().session).toBeNull()
+  })
 })
