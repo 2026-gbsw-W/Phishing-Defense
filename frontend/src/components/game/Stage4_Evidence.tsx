@@ -2,31 +2,12 @@ import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { useEvidenceList } from '@hooks/useEvidence'
 import { evidenceService } from '@services/evidenceService'
+import { evidenceTypeLabel } from '@utils/evidenceLabels'
 import { ApiError } from '@/types/api'
 
 interface Stage4EvidenceProps {
   recordId: number
   onProceed: () => void
-}
-
-// Short Korean labels for the evidence types the backend's rule-based
-// extractor tags (docs/PRD.md §17). Falls back to the raw type string for
-// anything not in this list, so a new type on the backend doesn't crash.
-const EVIDENCE_TYPE_LABELS: Record<string, string> = {
-  phone_number: '전화번호',
-  name: '이름',
-  email: '이메일',
-  amount_mentioned: '금액',
-  account_number: '계좌번호',
-  suspicious_url: '의심 URL',
-  impersonation_type: '사칭 유형',
-  impersonation_detail: '사칭 정황',
-  urgency: '긴급성 유도',
-  tone_unnatural: '부자연스러운 말투',
-  information_pattern: '정보 요구 패턴',
-  transaction_request: '송금 요구',
-  personal_info_request: '개인정보 요구',
-  etc: '기타',
 }
 
 export function Stage4_Evidence({ recordId, onProceed }: Stage4EvidenceProps) {
@@ -92,7 +73,7 @@ export function Stage4_Evidence({ recordId, onProceed }: Stage4EvidenceProps) {
                   <span className="stage4-evidence-item-body">
                     <span className="stage4-evidence-item-value">{evidence.value}</span>
                     <span className="stage4-evidence-item-type mono">
-                      {EVIDENCE_TYPE_LABELS[evidence.type] ?? evidence.type}
+                      {evidenceTypeLabel(evidence.type)}
                     </span>
                   </span>
                 </label>

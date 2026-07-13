@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect, type FormEvent } from 'react'
 import toast from 'react-hot-toast'
+import { useQueryClient } from '@tanstack/react-query'
 import { useChat } from '@hooks/useChat'
+import { useEvidenceList } from '@hooks/useEvidence'
+import { evidenceTypeLabel } from '@utils/evidenceLabels'
 import { ApiError } from '@/types/api'
 
 interface Stage2ChatProps {
@@ -14,13 +17,16 @@ interface Stage2ChatProps {
 }
 
 export function Stage2_Chat({ recordId, initialMessage, onProceedToJudgment }: Stage2ChatProps) {
+  const queryClient = useQueryClient()
   const { messages, send, requestHint, isSending, newlyExtractedEvidence } = useChat(recordId)
+  const { data: evidenceList } = useEvidenceList(recordId)
   const displayMessages = initialMessage
     ? [{ turn: 0, sender: 'ai' as const, message: initialMessage, timestamp: '' }, ...messages]
     : messages
   const [draft, setDraft] = useState('')
   const [hintText, setHintText] = useState<string | null>(null)
   const [isHinting, setIsHinting] = useState(false)
+  const [isEvidenceOpen, setIsEvidenceOpen] = useState(false)
   const listEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -30,7 +36,11 @@ export function Stage2_Chat({ recordId, initialMessage, onProceedToJudgment }: S
   useEffect(() => {
     if (newlyExtractedEvidence.length === 0) return
     toast.success(`증거가 자동으로 발견되었습니다: ${newlyExtractedEvidence.map((e) => e.value).join(', ')}`)
-  }, [newlyExtractedEvidence])
+    // The chat send response carries newly-found evidence inline, but the
+    // evidence catalog itself lives server-side — refetch it so the "내
+    // 증거함" count/list here stays in sync with what Stage 4 will show.
+    queryClient.invalidateQueries({ queryKey: ['evidence', recordId] })
+  }, [newlyExtractedEvidence, queryClient, recordId])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -57,6 +67,8 @@ export function Stage2_Chat({ recordId, initialMessage, onProceedToJudgment }: S
     }
   }
 
+  const evidenceCount = evidenceList?.length ?? 0
+
   return (
     <div className="stage2-chat-container">
       <div className="stage2-chat-messages">
@@ -73,6 +85,29 @@ export function Stage2_Chat({ recordId, initialMessage, onProceedToJudgment }: S
           <span className="mono">HINT</span> {hintText}
         </p>
       )}
+
+      <div className="stage2-chat-evidence-box">
+        <button
+          type="button"
+          className="stage2-chat-evidence-toggle"
+          onClick={() => setIsEvidenceOpen((v) => !v)}
+          disabled={evidenceCount === 0}
+        >
+          내 증거함 ({evidenceCount}개 저장됨)
+        </button>
+        {isEvidenceOpen && evidenceCount > 0 && (
+          <ul className="stage2-chat-evidence-list">
+            {evidenceList!.map((item) => (
+              <li key={item.evidenceId} className="stage2-chat-evidence-item">
+                <span className="stage2-chat-evidence-item-value">{item.value}</span>
+                <span className="stage2-chat-evidence-item-type mono">
+                  {evidenceTypeLabel(item.type)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <div className="stage2-chat-actions">
         <button type="button" className="btn-ghost" onClick={handleHint} disabled={isHinting}>
