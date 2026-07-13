@@ -272,6 +272,105 @@ h2 {
   text-decoration: none;
 }
 
+/* ---- Dashboard page ---- */
+.dashboard-page {
+  min-height: 100%;
+  padding: 32px 20px 48px;
+}
+.dashboard-wrap {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.dashboard-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.dashboard-nickname {
+  font-size: 20px;
+  font-weight: 900;
+}
+.dashboard-level-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.dashboard-level-row .mono {
+  color: var(--text);
+}
+.dashboard-level-bar {
+  height: 6px;
+  border-radius: 100px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.dashboard-level-bar-fill {
+  height: 100%;
+  background: var(--alarm);
+  border-radius: 100px;
+  transition: width 0.3s ease;
+}
+
+.dashboard-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.dashboard-section-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+.dashboard-empty {
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.chapter-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+}
+.chapter-card-title {
+  font-weight: 700;
+  font-size: 15px;
+}
+.chapter-card-meta {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+.chapter-card-meta.mono {
+  letter-spacing: 0.04em;
+}
+.chapter-card-play {
+  background: var(--alarm);
+  color: #2a0806;
+  border: none;
+  border-radius: 4px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.chapter-card-locked {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
 /* ---- 404 page ---- */
 .not-found-page {
   min-height: 100%;
