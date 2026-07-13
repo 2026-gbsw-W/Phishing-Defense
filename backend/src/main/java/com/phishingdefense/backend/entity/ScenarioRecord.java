@@ -122,4 +122,31 @@ public class ScenarioRecord {
     public boolean isOwnedBy(Long userId) {
         return this.userId.equals(userId);
     }
+
+    public boolean isCompleted() {
+        return Boolean.TRUE.equals(this.completed);
+    }
+
+    public int advanceTurn() {
+        this.currentTurn = (this.currentTurn == null ? 0 : this.currentTurn) + 1;
+        return this.currentTurn;
+    }
+
+    public void useHint() {
+        this.hintsUsed = (this.hintsUsed == null ? 0 : this.hintsUsed) + 1;
+    }
+
+    public int recordJudgment(boolean isCorrect) {
+        this.correctJudgment = isCorrect;
+        this.judgmentAtTurn = this.currentTurn;
+        if (isCorrect) {
+            this.currentStage = Math.min((this.currentStage == null ? FIRST_STAGE : this.currentStage) + 1, LAST_STAGE);
+        }
+        return this.currentStage;
+    }
+
+    public void recordEvidenceSubmission(int markedCount, int submittedCount) {
+        this.evidenceMarkedCount = markedCount;
+        this.evidenceSubmittedCount = submittedCount;
+    }
 }

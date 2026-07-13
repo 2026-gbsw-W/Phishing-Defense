@@ -48,4 +48,8 @@ public class Evidence {
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    public void markSubmitted() {
+        this.submittedAtReport = true;
+    }
 }
