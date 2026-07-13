@@ -5,16 +5,19 @@ import { useAuth } from '@hooks/useAuth'
 import { gameService } from '@services/gameService'
 import { getLevelInfo } from '@utils/levels'
 import { ProgressBar } from '@components/common/ProgressBar'
-import { ChapterCard } from './ChapterCard'
+import { ChapterRoadmap } from './ChapterRoadmap'
+import type { Chapter } from '@/types/game'
 
 export function Dashboard() {
   const { session } = useAuth()
   const { data: chapters, isLoading } = useChapters()
   const navigate = useNavigate()
 
-  const handlePlay = async (scenarioId: number) => {
+  const handlePlay = async (chapter: Chapter) => {
+    if (!chapter.isUnlocked) return
     try {
-      const { recordId } = await gameService.startScenario(scenarioId)
+      // Scenario 101 (Chapter 1 / Scenario 1-1) is the only playable scenario in this MVP.
+      const { recordId } = await gameService.startScenario(101)
       navigate(`/game/${recordId}`)
     } catch {
       toast.error('시나리오를 시작할 수 없습니다.')
@@ -43,18 +46,12 @@ export function Dashboard() {
         </header>
 
         <section className="dashboard-section">
-          <h2 className="dashboard-section-title">📚 Story Progress</h2>
+          <h2 className="dashboard-section-title">Story Progress</h2>
           {isLoading && <p className="dashboard-empty">불러오는 중...</p>}
           {!isLoading && chapters?.length === 0 && (
             <p className="dashboard-empty">아직 챕터가 없습니다.</p>
           )}
-          {chapters?.map((chapter) => (
-            <ChapterCard
-              key={chapter.chapterId}
-              chapter={chapter}
-              onPlay={() => handlePlay(101 /* Scenario 1-1, hardcoded for the single-scenario MVP */)}
-            />
-          ))}
+          {chapters && chapters.length > 0 && <ChapterRoadmap chapters={chapters} onPlay={handlePlay} />}
         </section>
       </div>
     </div>

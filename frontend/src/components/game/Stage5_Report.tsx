@@ -45,7 +45,7 @@ export function Stage5_Report({ recordId, onComplete }: Stage5ReportProps) {
 
   return (
     <div className="stage5-report-container">
-      <p className="stage5-report-header">📞 경찰 신고</p>
+      <p className="stage5-report-header">경찰 신고</p>
 
       <div className="stage5-report-messages">
         {reportMessages.length === 0 && (

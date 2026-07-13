@@ -50,7 +50,7 @@ describe('Stage6_Result', () => {
     })
     expect(screen.getByLabelText(/별점/)).toBeInTheDocument()
     expect(screen.getByText(/정확도/)).toBeInTheDocument()
-    expect(screen.getByText('✅')).toBeInTheDocument()
+    expect(document.querySelector('.stage6-result-verdict-icon.is-valid')).toBeInTheDocument()
   })
 
   it('shows the missed evidence list for ground-truth items that were never submitted', async () => {

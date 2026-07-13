@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Check, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useReport } from '@hooks/useReport'
 import { reportService } from '@services/reportService'
@@ -72,7 +73,9 @@ export function Stage6_Result({ recordId, onClaimed }: Stage6ResultProps) {
           <ul className="stage6-result-verdict-list">
             {report.evidenceAnalysis.verdicts.map((v) => (
               <li key={v.evidenceId} className="stage6-result-verdict-item">
-                <span className="stage6-result-verdict-icon">{v.isValid ? '✅' : '❌'}</span>
+                <span className={`stage6-result-verdict-icon ${v.isValid ? 'is-valid' : 'is-invalid'}`}>
+                  {v.isValid ? <Check size={16} /> : <X size={16} />}
+                </span>
                 <span className="stage6-result-verdict-body">
                   <span className="stage6-result-verdict-value">{v.value}</span>
                   <span className="stage6-result-verdict-reason">{v.reason}</span>
@@ -116,7 +119,7 @@ export function Stage6_Result({ recordId, onClaimed }: Stage6ResultProps) {
       {claimResult && (
         <div className="stage6-result-claim-summary">
           <p className="stage6-result-claim-xp">+{claimResult.xpAdded} XP 획득!</p>
-          {claimResult.levelUp && <p className="stage6-result-claim-levelup">레벨 업! 🎉</p>}
+          {claimResult.levelUp && <p className="stage6-result-claim-levelup">레벨 업!</p>}
           <button type="button" className="btn-ghost" onClick={onClaimed}>
             완료
           </button>
