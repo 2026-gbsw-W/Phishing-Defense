@@ -9,4 +9,6 @@ public interface ScenarioRecordRepository extends JpaRepository<ScenarioRecord, 
     List<ScenarioRecord> findByUserIdOrderByCreatedAtDesc(Long userId);
 
     List<ScenarioRecord> findByUserIdAndScenarioId(Long userId, Long scenarioId);
+
+    List<ScenarioRecord> findByUserIdAndChapterId(Long userId, Integer chapterId);
 }

@@ -2,10 +2,12 @@ package com.phishingdefense.backend.controller;
 
 import com.phishingdefense.backend.dto.game.ChapterResponse;
 import com.phishingdefense.backend.dto.game.StageResponse;
+import com.phishingdefense.backend.security.UserPrincipal;
 import com.phishingdefense.backend.service.ChapterService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,7 +31,8 @@ public class ChapterController {
     }
 
     @GetMapping("/{chapterId}/stages")
-    public ResponseEntity<List<StageResponse>> getStages(@PathVariable Integer chapterId) {
-        return ResponseEntity.ok(chapterService.getStages(chapterId));
+    public ResponseEntity<List<StageResponse>> getStages(
+            @AuthenticationPrincipal UserPrincipal principal, @PathVariable Integer chapterId) {
+        return ResponseEntity.ok(chapterService.getStages(principal.getUserId(), chapterId));
     }
 }

@@ -52,4 +52,17 @@ public class Evidence {
     public void markSubmitted() {
         this.submittedAtReport = true;
     }
+
+    public static Evidence discovered(
+            Long recordId, String evidenceType, String evidenceValue, Integer messageTurn, Integer importanceLevel) {
+        Evidence evidence = new Evidence();
+        evidence.recordId = recordId;
+        evidence.evidenceType = evidenceType;
+        evidence.evidenceValue = evidenceValue;
+        evidence.messageTurn = messageTurn;
+        evidence.importanceLevel = importanceLevel;
+        evidence.submittedAtReport = false;
+        evidence.validEvidence = true;
+        return evidence;
+    }
 }
