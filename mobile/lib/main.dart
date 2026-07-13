@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import 'screens/scenario_selection/scenario_selection_screen.dart';
+import 'screens/login/login_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -29,7 +29,7 @@ class PhishingDefenseApp extends StatelessWidget {
         title: '피싱 디펜스',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.dark,
-        home: const ScenarioSelectionScreen(),
+        home: const LoginScreen(),
       ),
     );
   }

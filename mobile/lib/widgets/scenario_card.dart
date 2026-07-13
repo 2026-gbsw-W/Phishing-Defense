@@ -31,7 +31,7 @@ class ScenarioCard extends StatelessWidget {
           color: AppColors.surface,
           border: Border(
             top: BorderSide(
-              color: scenario.accentColor.withValues(alpha: 0.6),
+              color: AppColors.alarm.withValues(alpha: 0.6),
               width: 2,
             ),
             left: const BorderSide(color: AppColors.border),
@@ -49,14 +49,10 @@ class ScenarioCard extends StatelessWidget {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: scenario.accentColor.withValues(alpha: 0.15),
+                    color: AppColors.alarm.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Icon(
-                    scenario.icon,
-                    color: scenario.accentColor,
-                    size: 26,
-                  ),
+                  child: Icon(scenario.icon, color: AppColors.alarm, size: 26),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
