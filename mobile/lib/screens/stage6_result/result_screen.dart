@@ -153,10 +153,6 @@ class _ResultScreenState extends State<ResultScreen>
                         const SizedBox(height: 16),
                         _AiAnalysisSection(analysis: report.aiAnalysis!),
                       ],
-                      const SizedBox(height: 16),
-                      _EvidenceAnalysisSection(
-                        analysis: report.evidenceAnalysis,
-                      ),
                       if (report.recommendations.isNotEmpty) ...[
                         const SizedBox(height: 16),
                         _TipSection(recommendations: report.recommendations),
@@ -500,6 +496,30 @@ class _AiAnalysisSection extends StatelessWidget {
               ),
             ),
           ],
+
+          if (analysis.evidenceFeedback.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            const Divider(color: AppColors.border),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Icon(Icons.bookmark_rounded, color: AppColors.amber, size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  '증거 평가',
+                  style: textTheme.labelMedium?.copyWith(color: AppColors.amber),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              analysis.evidenceFeedback,
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppColors.textPrimary,
+                height: 1.6,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -543,71 +563,6 @@ class _RiskChip extends StatelessWidget {
               fontWeight: active ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EvidenceAnalysisSection extends StatelessWidget {
-  const _EvidenceAnalysisSection({required this.analysis});
-
-  final EvidenceAnalysis analysis;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.fact_check_rounded,
-                color: AppColors.alarm,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '증거 판정',
-                style: textTheme.labelLarge?.copyWith(color: AppColors.alarm),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '전체 ${analysis.totalCount}개 중 ${analysis.submittedCount}개를 제출했습니다.',
-            style: textTheme.bodyMedium?.copyWith(color: AppColors.textPrimary),
-          ),
-          if (analysis.missedEvidence.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            const Divider(color: AppColors.border),
-            const SizedBox(height: 10),
-            Text(
-              '놓친 증거',
-              style: textTheme.labelMedium?.copyWith(color: AppColors.alarm),
-            ),
-            const SizedBox(height: 8),
-            for (final item in analysis.missedEvidence)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Text(
-                  '• ${item.value}',
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ),
-          ],
         ],
       ),
     );

@@ -2,7 +2,6 @@ import 'dart:math';
 
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 
 import '../../models/game/stage.dart';
 import '../../services/game_api.dart';
@@ -38,7 +37,6 @@ class _ChatScreenState extends State<ChatScreen> {
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();
   final _msgs = <_ChatMsg>[];
-  late final FlutterTts _tts;
 
   bool _isAiTyping = false;
   bool _hintLoading = false;
@@ -51,8 +49,6 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    _tts = FlutterTts();
-    _initTts();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchInitialAiGreeting();
     });
@@ -77,7 +73,6 @@ class _ChatScreenState extends State<ChatScreen> {
         _hintAvailable = result.hintAvailable;
         _msgs.add(_ChatMsg(text: result.aiResponse, isUser: false, isNew: true));
       });
-      _tts.speak(result.aiResponse);
       _scrollToBottom();
     } catch (e) {
       if (mounted) {
@@ -87,11 +82,6 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       }
     }
-  }
-
-  Future<void> _initTts() async {
-    await _tts.setLanguage('ko-KR');
-    await _tts.setSpeechRate(0.45);
   }
 
   Future<void> _send() async {
@@ -121,7 +111,6 @@ class _ChatScreenState extends State<ChatScreen> {
           _ChatMsg(text: result.aiResponse, isUser: false, isNew: true),
         );
       });
-      _tts.speak(result.aiResponse);
       _scrollToBottom();
     } catch (e) {
       if (!mounted) return;
@@ -276,7 +265,6 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _proceedToJudge() {
-    _tts.stop();
     final savedTexts = _msgs
         .where((m) => !m.isUser && m.savedAsEvidence)
         .map((m) => m.text)
@@ -294,7 +282,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
-    _tts.stop();
     _controller.dispose();
     _scrollController.dispose();
     _focusNode.dispose();
