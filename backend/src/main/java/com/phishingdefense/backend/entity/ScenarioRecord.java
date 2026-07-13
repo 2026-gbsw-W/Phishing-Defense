@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -16,6 +17,9 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ScenarioRecord {
+
+    public static final int FIRST_STAGE = 1;
+    public static final int LAST_STAGE = 6;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,6 +34,12 @@ public class ScenarioRecord {
 
     @Column(name = "scenario_id", nullable = false)
     private Long scenarioId;
+
+    @Column(name = "current_stage")
+    private Integer currentStage;
+
+    @Column(name = "current_turn")
+    private Integer currentTurn;
 
     @Column(name = "is_correct_judgment")
     private Boolean correctJudgment;
@@ -84,4 +94,32 @@ public class ScenarioRecord {
 
     @Column(name = "updated_at", insertable = false, updatable = false)
     private LocalDateTime updatedAt;
+
+    @Builder
+    private ScenarioRecord(Long userId, Integer chapterId, Long scenarioId, LocalDateTime playedAt) {
+        this.userId = userId;
+        this.chapterId = chapterId;
+        this.scenarioId = scenarioId;
+        this.currentStage = FIRST_STAGE;
+        this.currentTurn = 0;
+        this.hintsUsed = 0;
+        this.starRating = 0;
+        this.totalScore = 0;
+        this.completed = false;
+        this.reported = false;
+        this.playedAt = playedAt;
+    }
+
+    public static ScenarioRecord start(Long userId, Integer chapterId, Long scenarioId) {
+        return ScenarioRecord.builder()
+                .userId(userId)
+                .chapterId(chapterId)
+                .scenarioId(scenarioId)
+                .playedAt(LocalDateTime.now())
+                .build();
+    }
+
+    public boolean isOwnedBy(Long userId) {
+        return this.userId.equals(userId);
+    }
 }

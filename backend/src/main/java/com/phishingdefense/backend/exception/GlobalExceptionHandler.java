@@ -56,6 +56,12 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), "INVALID_INPUT", e.getMessage()));
     }
 
+    @ExceptionHandler(ScenarioRecordAccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(ScenarioRecordAccessDeniedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ErrorResponse.of(HttpStatus.FORBIDDEN.value(), "ACCESS_DENIED", e.getMessage()));
+    }
+
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException e) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
