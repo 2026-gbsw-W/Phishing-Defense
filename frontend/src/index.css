@@ -443,3 +443,36 @@ h2 {
   flex: 1;
   padding: 16px;
 }
+
+/* ---- Stage1_SMS component ---- */
+.stage1-sms-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding-top: 32px;
+}
+.stage1-sms-intro-text {
+  font-size: 14px;
+  color: var(--text-dim);
+  text-align: center;
+}
+.stage1-sms-bubble {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  border-top-left-radius: 0;
+  padding: 16px;
+  max-width: 280px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.stage1-sms-bubble-text {
+  font-size: 14px;
+  color: var(--text);
+  white-space: pre-wrap;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+.stage1-sms-button {
+  align-self: center;
+}
