@@ -34,6 +34,7 @@ app.add_middleware(
 llm = ChatOllama(
     model="llama3.1:8b",
     temperature=1.0,
+    base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
 )
 
 # session_id -> 대화 기록

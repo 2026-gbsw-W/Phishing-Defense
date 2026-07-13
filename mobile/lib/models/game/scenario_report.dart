@@ -22,6 +22,58 @@ class EvidenceAnalysis {
   final List<EvidenceItem> missedEvidence;
 }
 
+class AiRiskAnalysis {
+  const AiRiskAnalysis({
+    required this.riskScore,
+    required this.goodPoints,
+    required this.mistakes,
+    required this.improvementTips,
+    required this.dangerousMessages,
+    required this.personalInfoRequested,
+    required this.accountNumberRequested,
+    required this.moneyRequested,
+    required this.urgencyCreated,
+    required this.authorityImpersonation,
+    required this.suspiciousLink,
+    required this.userFellForIt,
+    required this.evidenceFeedback,
+  });
+
+  factory AiRiskAnalysis.fromJson(Map<String, dynamic> json) {
+    return AiRiskAnalysis(
+      riskScore: (json['riskScore'] as num?)?.toInt() ?? 0,
+      goodPoints: json['goodPoints'] as String? ?? '',
+      mistakes: json['mistakes'] as String? ?? '',
+      improvementTips: json['improvementTips'] as String? ?? '',
+      dangerousMessages: (json['dangerousMessages'] as List<dynamic>? ?? [])
+          .map((e) => e as String)
+          .toList(),
+      personalInfoRequested: json['personalInfoRequested'] as bool? ?? false,
+      accountNumberRequested: json['accountNumberRequested'] as bool? ?? false,
+      moneyRequested: json['moneyRequested'] as bool? ?? false,
+      urgencyCreated: json['urgencyCreated'] as bool? ?? false,
+      authorityImpersonation: json['authorityImpersonation'] as bool? ?? false,
+      suspiciousLink: json['suspiciousLink'] as bool? ?? false,
+      userFellForIt: json['userFellForIt'] as bool? ?? false,
+      evidenceFeedback: json['evidenceFeedback'] as String? ?? '',
+    );
+  }
+
+  final int riskScore;
+  final String goodPoints;
+  final String mistakes;
+  final String improvementTips;
+  final List<String> dangerousMessages;
+  final bool personalInfoRequested;
+  final bool accountNumberRequested;
+  final bool moneyRequested;
+  final bool urgencyCreated;
+  final bool authorityImpersonation;
+  final bool suspiciousLink;
+  final bool userFellForIt;
+  final String evidenceFeedback;
+}
+
 class ScenarioReport {
   const ScenarioReport({
     required this.accuracyScore,
@@ -30,6 +82,7 @@ class ScenarioReport {
     required this.detailedFeedback,
     required this.evidenceAnalysis,
     required this.recommendations,
+    this.aiAnalysis,
   });
 
   factory ScenarioReport.fromJson(Map<String, dynamic> json) {
@@ -44,6 +97,9 @@ class ScenarioReport {
       recommendations: (json['recommendations'] as List<dynamic>? ?? [])
           .map((e) => e as String)
           .toList(),
+      aiAnalysis: json['aiAnalysis'] == null
+          ? null
+          : AiRiskAnalysis.fromJson(json['aiAnalysis'] as Map<String, dynamic>),
     );
   }
 
@@ -53,4 +109,5 @@ class ScenarioReport {
   final String detailedFeedback;
   final EvidenceAnalysis evidenceAnalysis;
   final List<String> recommendations;
+  final AiRiskAnalysis? aiAnalysis;
 }

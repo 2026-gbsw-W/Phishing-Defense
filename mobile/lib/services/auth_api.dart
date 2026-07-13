@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-/// 백엔드 서버 주소. iOS 시뮬레이터 기준 localhost로 접근 가능하다.
-/// 실기기/Android 에뮬레이터에서 테스트할 때는 값을 바꿔야 한다.
+/// 백엔드(Spring Boot) 서버 주소.
+/// 실기기/Android 에뮬레이터에서는 실제 IP로 교체 필요.
 const String kApiBaseUrl = 'http://localhost:8080';
 
 class AuthSession {

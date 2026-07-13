@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
+import '../../models/game/scenario_start.dart';
 import '../../models/game/stage.dart';
 import '../../services/game_api.dart';
 import '../../theme/app_colors.dart';
@@ -24,8 +25,11 @@ class _SmsScreenState extends State<SmsScreen>
 
   bool _messageVisible = false;
   bool _ttsReady = false;
-  bool _starting = false;
   String? _errorText;
+
+  // 화면 진입 시 미리 받아두는 시나리오 시작 정보
+  ScenarioStart? _scenarioStart;
+  bool _loadingScenario = true;
 
   @override
   void initState() {
@@ -41,10 +45,31 @@ class _SmsScreenState extends State<SmsScreen>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    Future.delayed(const Duration(milliseconds: 600), () {
-      if (mounted) setState(() => _messageVisible = true);
-    });
+    _loadScenario();
   }
+
+  Future<void> _loadScenario() async {
+    try {
+      final start = await GameApi.startScenario(widget.stage.stageId);
+      if (!mounted) return;
+      setState(() {
+        _scenarioStart = start;
+        _loadingScenario = false;
+        _messageVisible = true;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadingScenario = false;
+        _messageVisible = true;
+        _errorText = e.toString();
+      });
+    }
+  }
+
+  // 화면에 표시할 SMS 내용: 백엔드 응답이 있으면 그것, 없으면 stage 기본값
+  String get _smsContent =>
+      _scenarioStart?.initialMessage ?? widget.stage.initialMessage;
 
   Future<void> _initTts() async {
     await _tts.setLanguage('ko-KR');
@@ -54,7 +79,7 @@ class _SmsScreenState extends State<SmsScreen>
   }
 
   Future<void> _readAloud() async {
-    await _tts.speak(widget.stage.initialMessage);
+    await _tts.speak(_smsContent);
   }
 
   @override
@@ -65,56 +90,32 @@ class _SmsScreenState extends State<SmsScreen>
   }
 
   Future<void> _proceedToChat() async {
+    if (_scenarioStart == null) return;
     _tts.stop();
-    setState(() {
-      _starting = true;
-      _errorText = null;
-    });
-
-    try {
-      final start = await GameApi.startScenario(widget.stage.stageId);
-      if (!mounted) return;
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ChatScreen(
-            stage: widget.stage,
-            recordId: start.recordId,
-            openerMessage: start.initialMessage,
-          ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChatScreen(
+          stage: widget.stage,
+          recordId: _scenarioStart!.recordId,
+          openerMessage: _scenarioStart!.initialMessage,
         ),
-      );
-    } catch (e) {
-      setState(() => _errorText = e.toString());
-    } finally {
-      if (mounted) setState(() => _starting = false);
-    }
+      ),
+    );
   }
 
   Future<void> _proceedToVoiceCall() async {
+    if (_scenarioStart == null) return;
     _tts.stop();
-    setState(() {
-      _starting = true;
-      _errorText = null;
-    });
-
-    try {
-      final start = await GameApi.startScenario(widget.stage.stageId);
-      if (!mounted) return;
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => VoiceCallScreen(
-            stage: widget.stage,
-            recordId: start.recordId,
-          ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => VoiceCallScreen(
+          stage: widget.stage,
+          recordId: _scenarioStart!.recordId,
         ),
-      );
-    } catch (e) {
-      setState(() => _errorText = e.toString());
-    } finally {
-      if (mounted) setState(() => _starting = false);
-    }
+      ),
+    );
   }
 
   @override
@@ -156,11 +157,21 @@ class _SmsScreenState extends State<SmsScreen>
               AnimatedOpacity(
                 opacity: _messageVisible ? 1 : 0,
                 duration: const Duration(milliseconds: 500),
-                child: _SmsCard(
-                  sender: '발신번호 미확인',
-                  content: widget.stage.initialMessage,
-                  onReadAloud: _ttsReady ? _readAloud : null,
-                ),
+                child: _loadingScenario
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 32),
+                          child: CircularProgressIndicator(
+                            color: AppColors.alarm,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      )
+                    : _SmsCard(
+                        sender: '발신번호 미확인',
+                        content: _smsContent,
+                        onReadAloud: _ttsReady ? _readAloud : null,
+                      ),
               ),
               const Spacer(),
               if (_errorText != null) ...[
@@ -196,18 +207,9 @@ class _SmsScreenState extends State<SmsScreen>
                           child: SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
-                              onPressed: _starting ? null : _proceedToChat,
+                              onPressed: _loadingScenario ? null : _proceedToChat,
                               icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
-                              label: _starting
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: AppColors.onAlarm,
-                                      ),
-                                    )
-                                  : const Text('채팅으로 훈련'),
+                              label: const Text('채팅으로 훈련'),
                             ),
                           ),
                         ),
@@ -215,7 +217,7 @@ class _SmsScreenState extends State<SmsScreen>
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton.icon(
-                            onPressed: _starting ? null : _proceedToVoiceCall,
+                            onPressed: _loadingScenario ? null : _proceedToVoiceCall,
                             icon: const Icon(Icons.mic_rounded, size: 16),
                             label: const Text('음성 통화로 훈련'),
                             style: OutlinedButton.styleFrom(

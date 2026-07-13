@@ -16,6 +16,32 @@ import '../models/game/user_statistics.dart';
 import 'auth_api.dart';
 import 'session_store.dart';
 
+class VoiceMessageResult {
+  const VoiceMessageResult({
+    required this.userText,
+    required this.aiText,
+    required this.turn,
+    required this.audioBase64,
+    required this.audioContentType,
+  });
+
+  factory VoiceMessageResult.fromJson(Map<String, dynamic> json) {
+    return VoiceMessageResult(
+      userText: json['userText'] as String? ?? '',
+      aiText: json['aiText'] as String? ?? '',
+      turn: json['turn'] as int? ?? 0,
+      audioBase64: json['audioBase64'] as String? ?? '',
+      audioContentType: json['audioContentType'] as String? ?? 'audio/mpeg',
+    );
+  }
+
+  final String userText;
+  final String aiText;
+  final int turn;
+  final String audioBase64;
+  final String audioContentType;
+}
+
 class GameApiException implements Exception {
   GameApiException(this.message);
 
@@ -67,12 +93,12 @@ class GameApi {
     final uri = Uri.parse('$kApiBaseUrl$path');
     var response = await http
         .get(uri, headers: await _authHeaders())
-        .timeout(const Duration(seconds: 10));
+        .timeout(const Duration(seconds: 30));
 
     if (_isAuthFailure(response.statusCode) && await _tryRefreshSession()) {
       response = await http
           .get(uri, headers: await _authHeaders())
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 30));
     }
 
     _checkStatus(response);
@@ -85,12 +111,12 @@ class GameApi {
 
     var response = await http
         .post(uri, headers: await _authHeaders(), body: encodedBody)
-        .timeout(const Duration(seconds: 10));
+        .timeout(const Duration(seconds: 30));
 
     if (_isAuthFailure(response.statusCode) && await _tryRefreshSession()) {
       response = await http
           .post(uri, headers: await _authHeaders(), body: encodedBody)
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 30));
     }
 
     _checkStatus(response);
@@ -181,6 +207,47 @@ class GameApi {
     );
   }
 
+  /// 사용자가 수동으로 선택한 증거를 백엔드(Spring Boot)를 통해 AI 서버 세션에 저장한다.
+  /// AI 서버는 이 증거를 chat/end 분석 시 evidenceFeedback에 반영한다.
+  static Future<void> saveEvidence(int recordId, String message) async {
+    await _post('/api/v1/chat/$recordId/evidence', {'message': message});
+  }
+
+  /// 음성 오디오를 Spring Boot를 통해 AI 서버에 전송하고 AI 응답(텍스트 + 오디오 base64)을 받는다.
+  static Future<VoiceMessageResult> sendVoiceMessage(
+    int recordId,
+    List<int> audioBytes,
+  ) async {
+    final uri = Uri.parse('$kApiBaseUrl/api/v1/chat/$recordId/voice');
+
+    Future<http.StreamedResponse> doRequest() async {
+      final session = await SessionStore.load();
+      if (session == null) throw GameApiException('로그인이 필요합니다.');
+      final request = http.MultipartRequest('POST', uri)
+        ..headers['Authorization'] = 'Bearer ${session.accessToken}'
+        ..files.add(
+          http.MultipartFile.fromBytes('file', audioBytes, filename: 'voice.wav'),
+        );
+      return request.send().timeout(const Duration(seconds: 60));
+    }
+
+    var streamed = await doRequest();
+
+    if (_isAuthFailure(streamed.statusCode) && await _tryRefreshSession()) {
+      streamed = await doRequest();
+    }
+
+    final response = await http.Response.fromStream(streamed);
+    _checkStatus(response);
+    return VoiceMessageResult.fromJson(_decode(response) as Map<String, dynamic>);
+  }
+
+  /// AI 서버에 대화 분석을 요청하고 결과를 DB에 저장한다.
+  /// getReport() 호출 전에 반드시 먼저 실행해야 detailedFeedback/aiAnalysis가 채워진다.
+  static Future<void> endTraining(int recordId) async {
+    await _post('/api/v1/chat/$recordId/end');
+  }
+
   static Future<ScenarioReport> getReport(int recordId) async {
     final response = await _get('/api/v1/scenarios/$recordId/report');
     return ScenarioReport.fromJson(_decode(response) as Map<String, dynamic>);
@@ -202,4 +269,5 @@ class GameApi {
     final response = await _get('/api/v1/users/me/statistics');
     return UserStatistics.fromJson(_decode(response) as Map<String, dynamic>);
   }
+
 }
