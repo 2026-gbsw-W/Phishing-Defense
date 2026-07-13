@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../services/auth_api.dart';
 import '../../services/session_store.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/auth_text_field.dart';
 import '../scenario_selection/scenario_selection_screen.dart';
+import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -94,14 +96,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  _LoginField(
+                  AuthTextField(
                     controller: _emailController,
                     label: '이메일',
                     hint: 'name@example.com',
                     keyboardType: TextInputType.emailAddress,
                   ),
                   const SizedBox(height: 16),
-                  _LoginField(
+                  AuthTextField(
                     controller: _passwordController,
                     label: '비밀번호',
                     hint: '비밀번호를 입력하세요',
@@ -147,79 +149,31 @@ class _LoginScreenState extends State<LoginScreen> {
                           : const Text('로그인'),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: _submitting
+                        ? null
+                        : () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const SignupScreen(),
+                              ),
+                            );
+                          },
+                    child: Text(
+                      '계정이 없으신가요? 회원가입',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
         ),
       ),
-    );
-  }
-}
-
-class _LoginField extends StatelessWidget {
-  const _LoginField({
-    required this.controller,
-    required this.label,
-    required this.hint,
-    this.obscureText = false,
-    this.keyboardType,
-    this.suffixIcon,
-  });
-
-  final TextEditingController controller;
-  final String label;
-  final String hint;
-  final bool obscureText;
-  final TextInputType? keyboardType;
-  final Widget? suffixIcon;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: textTheme.labelMedium?.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          obscureText: obscureText,
-          keyboardType: keyboardType,
-          style: textTheme.bodyMedium,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: textTheme.bodyMedium?.copyWith(
-              color: AppColors.textSecondary,
-            ),
-            filled: true,
-            fillColor: AppColors.surface,
-            suffixIcon: suffixIcon,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(4),
-              borderSide: const BorderSide(color: AppColors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(4),
-              borderSide: const BorderSide(color: AppColors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(4),
-              borderSide: const BorderSide(color: AppColors.alarm),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 12,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

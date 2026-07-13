@@ -32,4 +32,14 @@ void main() {
 
     expect(find.text('이메일 또는 비밀번호가 올바르지 않습니다.'), findsOneWidget);
   });
+
+  testWidgets('회원가입 링크를 누르면 회원가입 화면으로 이동한다', (WidgetTester tester) async {
+    await tester.pumpWidget(const PhishingDefenseApp());
+
+    await tester.tap(find.text('계정이 없으신가요? 회원가입'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('회원가입'), findsWidgets);
+    expect(find.text('피싱 디펜스와 함께 훈련을 시작해보세요.'), findsOneWidget);
+  });
 }

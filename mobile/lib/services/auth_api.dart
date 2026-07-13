@@ -71,4 +71,38 @@ class AuthApi {
 
     throw AuthException('로그인에 실패했습니다. 잠시 후 다시 시도해주세요.');
   }
+
+  static Future<AuthSession> signup({
+    required String email,
+    required String password,
+    required String nickname,
+  }) async {
+    final response = await http
+        .post(
+          Uri.parse('$kApiBaseUrl/api/v1/auth/signup'),
+          headers: const {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'email': email,
+            'password': password,
+            'nickname': nickname,
+          }),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      return AuthSession.fromJson(
+        jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
+      );
+    }
+
+    if (response.statusCode == 409) {
+      throw AuthException('이미 가입된 이메일 또는 닉네임입니다.');
+    }
+
+    if (response.statusCode == 400) {
+      throw AuthException('입력값을 다시 확인해주세요.');
+    }
+
+    throw AuthException('회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.');
+  }
 }
