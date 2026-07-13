@@ -1,6 +1,7 @@
 package com.phishingdefense.backend.controller;
 
 import com.phishingdefense.backend.dto.auth.AuthResponse;
+import com.phishingdefense.backend.dto.auth.GoogleLoginRequest;
 import com.phishingdefense.backend.dto.auth.LoginRequest;
 import com.phishingdefense.backend.dto.auth.RefreshTokenRequest;
 import com.phishingdefense.backend.dto.auth.SignupRequest;
@@ -30,6 +31,12 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> loginWithGoogle(@Valid @RequestBody GoogleLoginRequest request) {
+        AuthResponse response = authService.loginWithGoogle(request);
         return ResponseEntity.ok(response);
     }
 

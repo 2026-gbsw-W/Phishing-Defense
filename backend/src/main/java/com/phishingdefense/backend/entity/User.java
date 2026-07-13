@@ -97,6 +97,26 @@ public class User {
                 .build();
     }
 
+    /**
+     * @param placeholderPasswordHash 소셜 계정은 비밀번호가 없으므로, password_hash NOT NULL 제약을 만족시키기 위한
+     *                                무작위 해시(로그인 시 절대 매칭되지 않음)를 전달한다.
+     */
+    public static User createSocialUser(String email, String nickname, String provider, String providerId,
+                                         String placeholderPasswordHash) {
+        return User.builder()
+                .email(email)
+                .passwordHash(placeholderPasswordHash)
+                .nickname(nickname)
+                .provider(provider)
+                .providerId(providerId)
+                .build();
+    }
+
+    public void linkSocialAccount(String provider, String providerId) {
+        this.provider = provider;
+        this.providerId = providerId;
+    }
+
     public void recordLogin() {
         this.lastLoginAt = LocalDateTime.now();
     }
