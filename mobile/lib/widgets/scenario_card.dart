@@ -1,24 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../models/scenario.dart';
+import '../models/game/stage.dart';
 import '../theme/app_colors.dart';
 
 class ScenarioCard extends StatelessWidget {
-  const ScenarioCard({super.key, required this.scenario, required this.onTap});
+  const ScenarioCard({super.key, required this.stage, required this.onTap});
 
-  final Scenario scenario;
+  final Stage stage;
   final VoidCallback onTap;
-
-  String _difficultyLabel(ScenarioDifficulty difficulty) {
-    switch (difficulty) {
-      case ScenarioDifficulty.easy:
-        return '쉬움';
-      case ScenarioDifficulty.normal:
-        return '보통';
-      case ScenarioDifficulty.hard:
-        return '어려움';
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,23 +41,18 @@ class ScenarioCard extends StatelessWidget {
                     color: AppColors.alarm.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Icon(scenario.icon, color: AppColors.alarm, size: 26),
+                  child: const Icon(
+                    Icons.sms_rounded,
+                    color: AppColors.alarm,
+                    size: 26,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(scenario.title, style: textTheme.titleMedium),
-                      const SizedBox(height: 4),
-                      Text(
-                        scenario.description,
-                        style: textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      Text(stage.title, style: textTheme.titleMedium),
                       const SizedBox(height: 10),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -76,13 +60,13 @@ class ScenarioCard extends StatelessWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: scenario.accentColor.withValues(alpha: 0.12),
+                          color: AppColors.alarm.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
-                          '난이도 · ${_difficultyLabel(scenario.difficulty)}',
+                          '난이도 · ${stage.difficultyLabel}',
                           style: textTheme.labelSmall?.copyWith(
-                            color: scenario.accentColor,
+                            color: AppColors.alarm,
                             fontWeight: FontWeight.w600,
                           ),
                         ),

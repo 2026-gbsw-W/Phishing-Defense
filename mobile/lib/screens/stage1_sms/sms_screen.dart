@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
-import '../../models/scenario.dart';
-import '../../services/evidence_collector.dart';
+import '../../models/game/stage.dart';
+import '../../services/game_api.dart';
 import '../../theme/app_colors.dart';
 import '../stage2_chat/chat_screen.dart';
 
 class SmsScreen extends StatefulWidget {
-  const SmsScreen({super.key, required this.scenario});
+  const SmsScreen({super.key, required this.stage});
 
-  final Scenario scenario;
+  final Stage stage;
 
   @override
   State<SmsScreen> createState() => _SmsScreenState();
@@ -20,10 +20,11 @@ class _SmsScreenState extends State<SmsScreen>
   late final FlutterTts _tts;
   late final AnimationController _pulseController;
   late final Animation<double> _pulseAnimation;
-  final _evidenceCollector = EvidenceCollector();
 
   bool _messageVisible = false;
   bool _ttsReady = false;
+  bool _starting = false;
+  String? _errorText;
 
   @override
   void initState() {
@@ -52,7 +53,7 @@ class _SmsScreenState extends State<SmsScreen>
   }
 
   Future<void> _readAloud() async {
-    await _tts.speak(widget.scenario.smsContent);
+    await _tts.speak(widget.stage.initialMessage);
   }
 
   @override
@@ -62,17 +63,31 @@ class _SmsScreenState extends State<SmsScreen>
     super.dispose();
   }
 
-  void _proceedToChat() {
+  Future<void> _proceedToChat() async {
     _tts.stop();
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ChatScreen(
-          scenario: widget.scenario,
-          evidenceCollector: _evidenceCollector,
+    setState(() {
+      _starting = true;
+      _errorText = null;
+    });
+
+    try {
+      final start = await GameApi.startScenario(widget.stage.stageId);
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatScreen(
+            stage: widget.stage,
+            recordId: start.recordId,
+            openerMessage: start.initialMessage,
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      setState(() => _errorText = e.toString());
+    } finally {
+      if (mounted) setState(() => _starting = false);
+    }
   }
 
   @override
@@ -115,12 +130,19 @@ class _SmsScreenState extends State<SmsScreen>
                 opacity: _messageVisible ? 1 : 0,
                 duration: const Duration(milliseconds: 500),
                 child: _SmsCard(
-                  sender: widget.scenario.senderName,
-                  content: widget.scenario.smsContent,
+                  sender: '발신번호 미확인',
+                  content: widget.stage.initialMessage,
                   onReadAloud: _ttsReady ? _readAloud : null,
                 ),
               ),
               const Spacer(),
+              if (_errorText != null) ...[
+                Text(
+                  _errorText!,
+                  style: textTheme.bodySmall?.copyWith(color: AppColors.alarm),
+                ),
+                const SizedBox(height: 12),
+              ],
               _SuspicionBanner(),
               const SizedBox(height: 16),
               Row(
@@ -142,8 +164,17 @@ class _SmsScreenState extends State<SmsScreen>
                     child: ScaleTransition(
                       scale: _pulseAnimation,
                       child: ElevatedButton(
-                        onPressed: _proceedToChat,
-                        child: const Text('훈련 시작하기 →'),
+                        onPressed: _starting ? null : _proceedToChat,
+                        child: _starting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.onAlarm,
+                                ),
+                              )
+                            : const Text('훈련 시작하기 →'),
                       ),
                     ),
                   ),

@@ -1,60 +1,60 @@
 import 'package:flutter/material.dart';
 
-import '../../models/scenario.dart';
-import '../../services/evidence_collector.dart';
+import '../../services/game_api.dart';
 import '../../theme/app_colors.dart';
 import '../stage4_evidence/evidence_screen.dart';
 
 class JudgeScreen extends StatefulWidget {
-  const JudgeScreen({
-    super.key,
-    required this.scenario,
-    required this.judgmentTurn,
-    required this.evidenceCollector,
-  });
+  const JudgeScreen({super.key, required this.recordId});
 
-  final Scenario scenario;
-  final int judgmentTurn;
-  final EvidenceCollector evidenceCollector;
+  final int recordId;
 
   @override
   State<JudgeScreen> createState() => _JudgeScreenState();
 }
 
 class _JudgeScreenState extends State<JudgeScreen> {
-  bool? _userJudgment;
+  bool _submitting = false;
   bool _revealed = false;
   int _wrongAttempts = 0;
+  String? _feedback;
+  bool? _lastCorrect;
+  String? _errorText;
 
   static const _maxWrongAttempts = 2;
 
-  void _judge(bool isPhishing) {
-    if (_revealed) return;
+  Future<void> _judge(bool isPhishing) async {
+    if (_revealed || _submitting) return;
 
-    final correct = isPhishing == widget.scenario.isPhishing;
     setState(() {
-      _userJudgment = isPhishing;
-      if (correct) {
-        _revealed = true;
-      } else {
-        _wrongAttempts++;
-        if (_wrongAttempts >= _maxWrongAttempts) _revealed = true;
-      }
+      _submitting = true;
+      _errorText = null;
     });
+
+    try {
+      final result = await GameApi.submitJudgment(widget.recordId, isPhishing);
+      setState(() {
+        _feedback = result.feedback;
+        _lastCorrect = result.isCorrect;
+        if (result.isCorrect) {
+          _revealed = true;
+        } else {
+          _wrongAttempts++;
+          if (_wrongAttempts >= _maxWrongAttempts) _revealed = true;
+        }
+      });
+    } catch (e) {
+      setState(() => _errorText = e.toString());
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   void _proceedToEvidence() {
-    final correct = _userJudgment == widget.scenario.isPhishing;
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => EvidenceScreen(
-          scenario: widget.scenario,
-          judgedCorrectly: correct,
-          judgmentTurn: widget.judgmentTurn,
-          wrongAttempts: _wrongAttempts,
-          evidenceCollector: widget.evidenceCollector,
-        ),
+        builder: (_) => EvidenceScreen(recordId: widget.recordId),
       ),
     );
   }
@@ -90,14 +90,19 @@ class _JudgeScreenState extends State<JudgeScreen> {
                   color: AppColors.textSecondary,
                 ),
               ),
-              const SizedBox(height: 32),
-              _HintList(
-                hints: widget.scenario.phishingHints,
-                revealed: _revealed,
-              ),
               const Spacer(),
+              if (_errorText != null) ...[
+                Text(
+                  _errorText!,
+                  style: textTheme.bodySmall?.copyWith(color: AppColors.alarm),
+                ),
+                const SizedBox(height: 14),
+              ],
               if (!_revealed && _wrongAttempts > 0) ...[
-                _RetryBanner(attemptsLeft: _maxWrongAttempts - _wrongAttempts),
+                _RetryBanner(
+                  attemptsLeft: _maxWrongAttempts - _wrongAttempts,
+                  feedback: _feedback,
+                ),
                 const SizedBox(height: 14),
               ],
               if (!_revealed) ...[
@@ -106,6 +111,7 @@ class _JudgeScreenState extends State<JudgeScreen> {
                   label: '피싱입니다',
                   sublabel: '이것은 사기 시도입니다',
                   color: AppColors.alarm,
+                  enabled: !_submitting,
                   onTap: () => _judge(true),
                 ),
                 const SizedBox(height: 14),
@@ -114,11 +120,13 @@ class _JudgeScreenState extends State<JudgeScreen> {
                   label: '정상 메시지입니다',
                   sublabel: '진짜 기관에서 보낸 메시지입니다',
                   color: AppColors.safe,
+                  enabled: !_submitting,
                   onTap: () => _judge(false),
                 ),
               ] else ...[
                 _ResultReveal(
-                  userJudgment: _userJudgment! == widget.scenario.isPhishing,
+                  correct: _lastCorrect ?? false,
+                  feedback: _feedback ?? '',
                   onContinue: _proceedToEvidence,
                 ),
               ],
@@ -131,9 +139,10 @@ class _JudgeScreenState extends State<JudgeScreen> {
 }
 
 class _RetryBanner extends StatelessWidget {
-  const _RetryBanner({required this.attemptsLeft});
+  const _RetryBanner({required this.attemptsLeft, this.feedback});
 
   final int attemptsLeft;
+  final String? feedback;
 
   @override
   Widget build(BuildContext context) {
@@ -141,7 +150,7 @@ class _RetryBanner extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.alarm.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(4),
         border: Border.all(color: AppColors.alarm.withValues(alpha: 0.3)),
       ),
       child: Row(
@@ -150,81 +159,10 @@ class _RetryBanner extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              '다시 생각해보세요. 대화 속 단서를 다시 살펴보면 도움이 될 거예요. (남은 기회 $attemptsLeft회)',
+              '${feedback ?? '다시 생각해보세요.'} (남은 기회 $attemptsLeft회)',
               style: Theme.of(
                 context,
               ).textTheme.bodySmall?.copyWith(color: AppColors.alarm),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HintList extends StatelessWidget {
-  const _HintList({required this.hints, required this.revealed});
-
-  final List<String> hints;
-  final bool revealed;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.search_rounded,
-                color: AppColors.alarm,
-                size: 18,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                revealed ? '발견된 피싱 단서' : '단서를 찾아보셨나요?',
-                style: textTheme.labelMedium?.copyWith(color: AppColors.alarm),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ...hints.map(
-            (hint) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: revealed
-                          ? AppColors.alarm
-                          : AppColors.textSecondary,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      revealed ? hint : '???',
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: revealed
-                            ? AppColors.textPrimary
-                            : AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
         ],
@@ -239,6 +177,7 @@ class _JudgeButton extends StatelessWidget {
     required this.label,
     required this.sublabel,
     required this.color,
+    required this.enabled,
     required this.onTap,
   });
 
@@ -246,6 +185,7 @@ class _JudgeButton extends StatelessWidget {
   final String label;
   final String sublabel;
   final Color color;
+  final bool enabled;
   final VoidCallback onTap;
 
   @override
@@ -253,39 +193,42 @@ class _JudgeButton extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: color.withValues(alpha: 0.5), width: 1.5),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: color, size: 22),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: textTheme.titleMedium?.copyWith(color: color),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    sublabel,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
+      onTap: enabled ? onTap : null,
+      child: Opacity(
+        opacity: enabled ? 1 : 0.5,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: color.withValues(alpha: 0.5), width: 1.5),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: color, size: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: textTheme.titleMedium?.copyWith(color: color),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      sublabel,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -293,15 +236,19 @@ class _JudgeButton extends StatelessWidget {
 }
 
 class _ResultReveal extends StatelessWidget {
-  const _ResultReveal({required this.userJudgment, required this.onContinue});
+  const _ResultReveal({
+    required this.correct,
+    required this.feedback,
+    required this.onContinue,
+  });
 
-  final bool userJudgment;
+  final bool correct;
+  final String feedback;
   final VoidCallback onContinue;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final correct = userJudgment;
 
     return Column(
       children: [
@@ -336,9 +283,7 @@ class _ResultReveal extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                correct
-                    ? '피싱을 올바르게 감지하셨습니다.\n증거 수집과 신고 방법을 확인해보세요!'
-                    : '이 메시지는 피싱이었습니다.\n어떤 단서를 놓쳤는지 확인해보세요.',
+                feedback,
                 textAlign: TextAlign.center,
                 style: textTheme.bodyMedium?.copyWith(
                   color: AppColors.textSecondary,

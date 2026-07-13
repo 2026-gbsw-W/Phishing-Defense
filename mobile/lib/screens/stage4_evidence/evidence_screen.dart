@@ -1,39 +1,55 @@
 import 'package:flutter/material.dart';
 
-import '../../models/scenario.dart';
-import '../../services/evidence_collector.dart';
+import '../../models/game/evidence_item.dart';
+import '../../services/game_api.dart';
 import '../../theme/app_colors.dart';
 import '../stage5_report/report_screen.dart';
 
-class EvidenceScreen extends StatelessWidget {
-  const EvidenceScreen({
-    super.key,
-    required this.scenario,
-    required this.judgedCorrectly,
-    required this.judgmentTurn,
-    required this.wrongAttempts,
-    required this.evidenceCollector,
-  });
+class EvidenceScreen extends StatefulWidget {
+  const EvidenceScreen({super.key, required this.recordId});
 
-  final Scenario scenario;
-  final bool judgedCorrectly;
-  final int judgmentTurn;
-  final int wrongAttempts;
-  final EvidenceCollector evidenceCollector;
+  final int recordId;
 
-  void _proceedToReport(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ReportScreen(
-          scenario: scenario,
-          judgedCorrectly: judgedCorrectly,
-          judgmentTurn: judgmentTurn,
-          wrongAttempts: wrongAttempts,
-          evidenceCollector: evidenceCollector,
+  @override
+  State<EvidenceScreen> createState() => _EvidenceScreenState();
+}
+
+class _EvidenceScreenState extends State<EvidenceScreen> {
+  late Future<List<EvidenceItem>> _future;
+  final _selectedIds = <int>{};
+  bool _submitting = false;
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = GameApi.getEvidence(widget.recordId);
+  }
+
+  void _retry() {
+    setState(() => _future = GameApi.getEvidence(widget.recordId));
+  }
+
+  Future<void> _proceedToReport() async {
+    setState(() {
+      _submitting = true;
+      _errorText = null;
+    });
+
+    try {
+      await GameApi.confirmEvidence(widget.recordId, _selectedIds.toList());
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ReportScreen(recordId: widget.recordId),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      setState(() => _errorText = e.toString());
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
@@ -63,7 +79,7 @@ class EvidenceScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    '내가 모은 증거',
+                    '발견된 증거',
                     style: textTheme.labelLarge?.copyWith(
                       color: AppColors.alarm,
                     ),
@@ -72,29 +88,49 @@ class EvidenceScreen extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '대화 중 직접 저장한 항목입니다.',
+                '신고에 제출할 증거를 선택하세요.',
                 style: textTheme.bodyMedium?.copyWith(
                   color: AppColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 16),
               Expanded(
-                child: AnimatedBuilder(
-                  animation: evidenceCollector,
-                  builder: (context, _) {
-                    final saved = evidenceCollector.saved;
-                    if (saved.isEmpty) {
+                child: FutureBuilder<List<EvidenceItem>>(
+                  future: _future,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState != ConnectionState.done) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.alarm,
+                        ),
+                      );
+                    }
+                    if (snapshot.hasError) {
+                      return _ErrorState(
+                        message: snapshot.error.toString(),
+                        onRetry: _retry,
+                      );
+                    }
+
+                    final items = snapshot.data!;
+                    if (items.isEmpty) {
                       return const _EmptyState();
                     }
                     return ListView.separated(
-                      itemCount: saved.length,
+                      itemCount: items.length,
                       separatorBuilder: (_, _) => const SizedBox(height: 10),
                       itemBuilder: (_, i) {
-                        final item = saved[i];
-                        return _SavedEvidenceTile(
-                          sourceText: item.sourceText,
-                          onRemove: () =>
-                              evidenceCollector.remove(item.sourceText),
+                        final item = items[i];
+                        return _EvidenceTile(
+                          item: item,
+                          selected: _selectedIds.contains(item.evidenceId),
+                          onToggle: (checked) => setState(() {
+                            if (checked) {
+                              _selectedIds.add(item.evidenceId);
+                            } else {
+                              _selectedIds.remove(item.evidenceId);
+                            }
+                          }),
                         );
                       },
                     );
@@ -102,13 +138,29 @@ class EvidenceScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
+              if (_errorText != null) ...[
+                Text(
+                  _errorText!,
+                  style: textTheme.bodySmall?.copyWith(color: AppColors.alarm),
+                ),
+                const SizedBox(height: 8),
+              ],
               _PendingJudgmentNotice(),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => _proceedToReport(context),
-                  child: const Text('다음: Stage 5 신고 →'),
+                  onPressed: _submitting ? null : _proceedToReport,
+                  child: _submitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.onAlarm,
+                          ),
+                        )
+                      : const Text('다음: Stage 5 신고 →'),
                 ),
               ),
             ],
@@ -137,16 +189,8 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            '아직 저장한 증거가 없어요',
+            '발견된 증거가 없어요',
             style: textTheme.bodyMedium?.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '대화 화면으로 돌아가 의심스러운 대사를\n길게 눌러 저장할 수 있습니다.',
-            textAlign: TextAlign.center,
-            style: textTheme.bodySmall?.copyWith(
               color: AppColors.textSecondary,
             ),
           ),
@@ -156,11 +200,51 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _SavedEvidenceTile extends StatelessWidget {
-  const _SavedEvidenceTile({required this.sourceText, required this.onRemove});
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.message, required this.onRetry});
 
-  final String sourceText;
-  final VoidCallback onRemove;
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.error_outline_rounded,
+            color: AppColors.alarm,
+            size: 36,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            style: textTheme.bodySmall?.copyWith(
+              color: AppColors.textSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton(onPressed: onRetry, child: const Text('다시 시도')),
+        ],
+      ),
+    );
+  }
+}
+
+class _EvidenceTile extends StatelessWidget {
+  const _EvidenceTile({
+    required this.item,
+    required this.selected,
+    required this.onToggle,
+  });
+
+  final EvidenceItem item;
+  final bool selected;
+  final ValueChanged<bool> onToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -175,17 +259,16 @@ class _SavedEvidenceTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.check_box_rounded, color: AppColors.safe),
+          Icon(
+            selected ? Icons.check_box_rounded : Icons.check_box_outline_blank,
+            color: selected ? AppColors.safe : AppColors.textSecondary,
+          ),
           const SizedBox(width: 12),
-          Expanded(child: Text('"$sourceText"', style: textTheme.bodyMedium)),
-          IconButton(
-            onPressed: onRemove,
-            icon: const Icon(
-              Icons.close_rounded,
-              color: AppColors.textSecondary,
-              size: 18,
+          Expanded(
+            child: GestureDetector(
+              onTap: () => onToggle(!selected),
+              child: Text('"${item.value}"', style: textTheme.bodyMedium),
             ),
-            tooltip: '증거함에서 제거',
           ),
         ],
       ),
@@ -213,7 +296,7 @@ class _PendingJudgmentNotice extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              '이 중 실제로 증거가 되는지는 신고 후 리포트에서 AI가 하나씩 판정해 드립니다.',
+              '선택한 증거는 신고 후 리포트에서 채점에 반영됩니다.',
               style: Theme.of(
                 context,
               ).textTheme.bodySmall?.copyWith(color: AppColors.amber),

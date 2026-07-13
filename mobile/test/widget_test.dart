@@ -67,7 +67,11 @@ void main() {
     await tester.pumpWidget(const PhishingDefenseApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('어떤 상황을 훈련해볼까요?'), findsOneWidget);
+    // 위젯 테스트 환경에서는 실제 네트워크 요청이 항상 실패하므로
+    // (TestWidgetsFlutterBinding), 로그인 화면을 건너뛰고 시나리오 선택
+    // 화면(로그아웃 버튼이 있는 AppBar)까지 도달했는지만 확인한다.
+    expect(find.byTooltip('로그아웃'), findsOneWidget);
+    expect(find.text('로그인'), findsNothing);
   });
 
   testWidgets('로그아웃하면 로그인 화면으로 돌아간다', (WidgetTester tester) async {

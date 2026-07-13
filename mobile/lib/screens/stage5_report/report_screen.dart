@@ -1,25 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../../models/scenario.dart';
-import '../../services/evidence_collector.dart';
 import '../../theme/app_colors.dart';
 import '../stage6_result/result_screen.dart';
 
+/// 경찰/은행 신고 연출 화면. 백엔드에 대응하는 신고 API가 없어 순수
+/// 로컬 연출(캔드 응답)로만 동작하며, recordId만 다음 화면으로 전달한다.
 class ReportScreen extends StatefulWidget {
-  const ReportScreen({
-    super.key,
-    required this.scenario,
-    required this.judgedCorrectly,
-    required this.judgmentTurn,
-    required this.wrongAttempts,
-    required this.evidenceCollector,
-  });
+  const ReportScreen({super.key, required this.recordId});
 
-  final Scenario scenario;
-  final bool judgedCorrectly;
-  final int judgmentTurn;
-  final int wrongAttempts;
-  final EvidenceCollector evidenceCollector;
+  final int recordId;
 
   @override
   State<ReportScreen> createState() => _ReportScreenState();
@@ -53,19 +42,10 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   void _proceedToResult() {
-    final reportHandledCount = (_policeSent ? 1 : 0) + (_bankSent ? 1 : 0);
-
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ResultScreen(
-          scenario: widget.scenario,
-          judgedCorrectly: widget.judgedCorrectly,
-          judgmentTurn: widget.judgmentTurn,
-          wrongAttempts: widget.wrongAttempts,
-          evidenceCollector: widget.evidenceCollector,
-          reportHandledCount: reportHandledCount,
-        ),
+        builder: (_) => ResultScreen(recordId: widget.recordId),
       ),
     );
   }
@@ -120,10 +100,6 @@ class _ReportScreenState extends State<ReportScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              _EvidenceSubmissionSelector(
-                evidenceCollector: widget.evidenceCollector,
-              ),
-              const SizedBox(height: 20),
               _ReportCard(
                 icon: Icons.local_police_rounded,
                 title: '경찰 신고',
@@ -154,89 +130,6 @@ class _ReportScreenState extends State<ReportScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _EvidenceSubmissionSelector extends StatelessWidget {
-  const _EvidenceSubmissionSelector({required this.evidenceCollector});
-
-  final EvidenceCollector evidenceCollector;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.bookmark_rounded,
-                color: AppColors.alarm,
-                size: 18,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '제출할 증거 선택',
-                style: textTheme.labelLarge?.copyWith(color: AppColors.alarm),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '경찰·은행에 함께 제시할 증거를 골라주세요.',
-            style: textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 12),
-          AnimatedBuilder(
-            animation: evidenceCollector,
-            builder: (context, _) {
-              final saved = evidenceCollector.saved;
-              if (saved.isEmpty) {
-                return Text(
-                  '저장한 증거가 없습니다. Stage 4에서 증거를 확인해보세요.',
-                  style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                );
-              }
-              final submitted = evidenceCollector.submittedSourceTexts;
-              return Column(
-                children: [
-                  for (final item in saved)
-                    CheckboxListTile(
-                      value: submitted.contains(item.sourceText),
-                      onChanged: (checked) => evidenceCollector.setSubmitted(
-                        item.sourceText,
-                        checked ?? false,
-                      ),
-                      controlAffinity: ListTileControlAffinity.leading,
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                      activeColor: AppColors.alarm,
-                      title: Text(
-                        '"${item.sourceText}"',
-                        style: textTheme.bodySmall,
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-        ],
       ),
     );
   }

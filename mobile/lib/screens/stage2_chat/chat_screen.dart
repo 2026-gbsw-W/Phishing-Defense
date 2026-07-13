@@ -4,36 +4,29 @@ import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
-import '../../logic/ai_response_engine.dart';
-import '../../models/scenario.dart';
-import '../../services/evidence_collector.dart';
+import '../../models/game/stage.dart';
+import '../../services/game_api.dart';
 import '../../theme/app_colors.dart';
 import '../stage3_judge/judge_screen.dart';
 
 class _ChatMsg {
-  _ChatMsg({
-    required this.text,
-    required this.isUser,
-    this.isNew = false,
-    this.evidenceLabel,
-  });
+  _ChatMsg({required this.text, required this.isUser, this.isNew = false});
   final String text;
   final bool isUser;
   final bool isNew;
-  final String? evidenceLabel;
-
-  bool get isSaveable => !isUser;
 }
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({
     super.key,
-    required this.scenario,
-    required this.evidenceCollector,
+    required this.stage,
+    required this.recordId,
+    required this.openerMessage,
   });
 
-  final Scenario scenario;
-  final EvidenceCollector evidenceCollector;
+  final Stage stage;
+  final int recordId;
+  final String openerMessage;
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -47,10 +40,10 @@ class _ChatScreenState extends State<ChatScreen> {
   late final FlutterTts _tts;
 
   bool _isAiTyping = false;
+  bool _hintLoading = false;
   int _turnCount = 0;
-  int _scriptIndex = 0;
-
-  final AiResponseEngine _engine = const ScriptedAiResponseEngine();
+  int _evidenceFoundCount = 0;
+  bool _hintAvailable = false;
 
   bool get _canProceed => _turnCount >= 2;
 
@@ -59,39 +52,16 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _tts = FlutterTts();
     _initTts();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _addAiOpener());
+    _msgs.add(_ChatMsg(text: widget.openerMessage, isUser: false));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _tts.speak(widget.openerMessage);
+      _scrollToBottom();
+    });
   }
 
   Future<void> _initTts() async {
     await _tts.setLanguage('ko-KR');
     await _tts.setSpeechRate(0.45);
-  }
-
-  void _addAiOpener() {
-    final opener = widget.scenario.aiOpener;
-    setState(() {
-      _msgs.add(
-        _ChatMsg(
-          text: opener.text,
-          isUser: false,
-          evidenceLabel: opener.evidenceLabel,
-        ),
-      );
-    });
-    _tts.speak(opener.text);
-    _scrollToBottom();
-  }
-
-  void _saveAsEvidence(_ChatMsg msg) {
-    widget.evidenceCollector.save(
-      SavedEvidence(sourceText: msg.text, matchedLabel: msg.evidenceLabel),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('증거로 저장했습니다'),
-        duration: Duration(seconds: 1),
-      ),
-    );
   }
 
   Future<void> _send() async {
@@ -104,35 +74,63 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() {
       _msgs.add(_ChatMsg(text: text, isUser: true));
       _isAiTyping = true;
-      _turnCount++;
     });
     _scrollToBottom();
 
-    final branch = classifyUserMessage(text);
-    final delay = Future.delayed(const Duration(milliseconds: 1200));
-    final result = await _engine.respond(
-      scenario: widget.scenario,
-      branch: branch,
-      scriptIndex: _scriptIndex,
-      turnIndex: _turnCount - 1,
-    );
-    await delay;
-    if (result.consumedScript) _scriptIndex++;
+    try {
+      final delay = Future.delayed(const Duration(milliseconds: 800));
+      final result = await GameApi.sendChat(widget.recordId, text);
+      await delay;
 
-    if (mounted) {
+      if (!mounted) return;
       setState(() {
         _isAiTyping = false;
+        _turnCount = result.turn;
+        _hintAvailable = result.hintAvailable;
+        _evidenceFoundCount += result.extractedEvidence.length;
         _msgs.add(
-          _ChatMsg(
-            text: result.line.text,
-            isUser: false,
-            isNew: true,
-            evidenceLabel: result.line.evidenceLabel,
-          ),
+          _ChatMsg(text: result.aiResponse, isUser: false, isNew: true),
         );
       });
-      _tts.speak(result.line.text);
+      _tts.speak(result.aiResponse);
       _scrollToBottom();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isAiTyping = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
+  Future<void> _showHint() async {
+    if (_hintLoading || !_hintAvailable) return;
+    setState(() => _hintLoading = true);
+    try {
+      final hint = await GameApi.getHint(widget.recordId);
+      if (!mounted) return;
+      setState(() => _hintAvailable = hint.remainingHints > 0);
+      showDialog<void>(
+        context: context,
+        builder: (_) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: const Text('힌트'),
+          content: Text(hint.hintText),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('확인'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) setState(() => _hintLoading = false);
     }
   }
 
@@ -152,13 +150,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _tts.stop();
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => JudgeScreen(
-          scenario: widget.scenario,
-          judgmentTurn: _turnCount,
-          evidenceCollector: widget.evidenceCollector,
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => JudgeScreen(recordId: widget.recordId)),
     );
   }
 
@@ -181,7 +173,7 @@ class _ChatScreenState extends State<ChatScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              widget.scenario.senderName,
+              widget.stage.title,
               style: textTheme.titleSmall?.copyWith(color: AppColors.alarm),
             ),
             Text(
@@ -197,6 +189,17 @@ class _ChatScreenState extends State<ChatScreen> {
           child: _StageProgressBar(current: 2, total: 6),
         ),
         actions: [
+          if (_hintAvailable)
+            TextButton(
+              onPressed: _hintLoading ? null : _showHint,
+              child: Text(
+                '힌트',
+                style: TextStyle(
+                  color: AppColors.amber,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
           if (_canProceed)
             TextButton(
               onPressed: _proceedToJudge,
@@ -210,76 +213,63 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
         ],
       ),
-      body: AnimatedBuilder(
-        animation: widget.evidenceCollector,
-        builder: (context, _) => Column(
-          children: [
-            _EvidenceTray(count: widget.evidenceCollector.saved.length),
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(16),
-                itemCount: _msgs.length + (_isAiTyping ? 1 : 0),
-                itemBuilder: (_, i) {
-                  if (_isAiTyping && i == _msgs.length) {
-                    return const _TypingIndicator();
-                  }
-                  final msg = _msgs[i];
-                  return _Bubble(
-                    msg: msg,
-                    isSaved: widget.evidenceCollector.isSaved(msg.text),
-                    onLongPress: msg.isSaveable
-                        ? () => _saveAsEvidence(msg)
-                        : null,
-                  );
-                },
-              ),
+      body: Column(
+        children: [
+          _EvidenceTray(count: _evidenceFoundCount),
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.all(16),
+              itemCount: _msgs.length + (_isAiTyping ? 1 : 0),
+              itemBuilder: (_, i) {
+                if (_isAiTyping && i == _msgs.length) {
+                  return const _TypingIndicator();
+                }
+                return _Bubble(msg: _msgs[i]);
+              },
             ),
-            if (_canProceed)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 4,
-                ),
-                child: GestureDetector(
-                  onTap: _proceedToJudge,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      color: AppColors.alarm.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: AppColors.alarm.withValues(alpha: 0.4),
+          ),
+          if (_canProceed)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: GestureDetector(
+                onTap: _proceedToJudge,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.alarm.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: AppColors.alarm.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.arrow_forward_rounded,
+                        color: AppColors.alarm,
+                        size: 16,
                       ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.arrow_forward_rounded,
-                          color: AppColors.alarm,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '피싱 여부를 판단할 준비가 됐다면 →',
-                          style: Theme.of(context).textTheme.labelMedium
-                              ?.copyWith(color: AppColors.alarm),
-                        ),
-                      ],
-                    ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '피싱 여부를 판단할 준비가 됐다면 →',
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(color: AppColors.alarm),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            _InputBar(
-              controller: _controller,
-              focusNode: _focusNode,
-              onSend: _send,
-              enabled: !_isAiTyping,
             ),
-          ],
-        ),
+          _InputBar(
+            controller: _controller,
+            focusNode: _focusNode,
+            onSend: _send,
+            enabled: !_isAiTyping,
+          ),
+        ],
       ),
     );
   }
@@ -301,7 +291,7 @@ class _EvidenceTray extends StatelessWidget {
           const Icon(Icons.bookmark_rounded, color: AppColors.alarm, size: 16),
           const SizedBox(width: 6),
           Text(
-            '내 증거함 ($count개 저장됨)',
+            '발견된 증거 ($count개)',
             style: Theme.of(
               context,
             ).textTheme.labelSmall?.copyWith(color: AppColors.textSecondary),
@@ -313,10 +303,8 @@ class _EvidenceTray extends StatelessWidget {
 }
 
 class _Bubble extends StatelessWidget {
-  const _Bubble({required this.msg, required this.isSaved, this.onLongPress});
+  const _Bubble({required this.msg});
   final _ChatMsg msg;
-  final bool isSaved;
-  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -347,86 +335,47 @@ class _Bubble extends StatelessWidget {
               ),
             ),
           Flexible(
-            child: GestureDetector(
-              onLongPress: onLongPress,
-              child: Container(
-                constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * 0.72,
+            child: Container(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.72,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: isUser ? AppColors.alarm : AppColors.surface,
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(18),
+                  topRight: const Radius.circular(18),
+                  bottomLeft: Radius.circular(isUser ? 18 : 4),
+                  bottomRight: Radius.circular(isUser ? 4 : 18),
                 ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: isUser ? AppColors.alarm : AppColors.surface,
-                  borderRadius: BorderRadius.only(
-                    topLeft: const Radius.circular(18),
-                    topRight: const Radius.circular(18),
-                    bottomLeft: Radius.circular(isUser ? 18 : 4),
-                    bottomRight: Radius.circular(isUser ? 4 : 18),
-                  ),
-                  border: Border.all(
-                    color: isSaved
-                        ? AppColors.alarm
-                        : isUser
-                        ? Colors.transparent
-                        : AppColors.border,
-                    width: isSaved ? 1.5 : 1,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    !isUser && msg.isNew
-                        ? AnimatedTextKit(
-                            animatedTexts: [
-                              TypewriterAnimatedText(
-                                msg.text,
-                                textStyle: textTheme.bodyMedium?.copyWith(
-                                  color: AppColors.textPrimary,
-                                  height: 1.5,
-                                ),
-                                speed: const Duration(milliseconds: 28),
-                              ),
-                            ],
-                            totalRepeatCount: 1,
-                            displayFullTextOnTap: true,
-                          )
-                        : Text(
-                            msg.text,
-                            style: textTheme.bodyMedium?.copyWith(
-                              color: isUser
-                                  ? AppColors.onAlarm
-                                  : AppColors.textPrimary,
-                              height: 1.5,
-                            ),
-                          ),
-                    if (isSaved) ...[
-                      const SizedBox(height: 6),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.bookmark_rounded,
-                            size: 12,
-                            color: isUser ? AppColors.onAlarm : AppColors.alarm,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '증거로 저장됨',
-                            style: textTheme.labelSmall?.copyWith(
-                              color: isUser
-                                  ? AppColors.onAlarm
-                                  : AppColors.alarm,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
+                border: Border.all(
+                  color: isUser ? Colors.transparent : AppColors.border,
                 ),
               ),
+              child: !isUser && msg.isNew
+                  ? AnimatedTextKit(
+                      animatedTexts: [
+                        TypewriterAnimatedText(
+                          msg.text,
+                          textStyle: textTheme.bodyMedium?.copyWith(
+                            color: AppColors.textPrimary,
+                            height: 1.5,
+                          ),
+                          speed: const Duration(milliseconds: 28),
+                        ),
+                      ],
+                      totalRepeatCount: 1,
+                      displayFullTextOnTap: true,
+                    )
+                  : Text(
+                      msg.text,
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: isUser
+                            ? AppColors.onAlarm
+                            : AppColors.textPrimary,
+                        height: 1.5,
+                      ),
+                    ),
             ),
           ),
         ],
