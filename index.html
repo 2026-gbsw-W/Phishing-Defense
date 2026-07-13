@@ -1,0 +1,1850 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>피싱 디펜스 — 당하는 경험이 아닌, 막아내는 경험</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ==========================================================
+         PHISHING DEFENSE — DESIGN SYSTEM
+         Full spec + rationale: docs/DESIGN_SYSTEM.md
+         Any new page should copy the :root tokens, font links, and
+         component patterns below as-is — don't invent new values.
+         ========================================================== */
+
+      /* ---- Color tokens (docs/DESIGN_SYSTEM.md §1) ---- */
+      :root {
+        --bg: #08060a; /* page background */
+        --surface: #14101a; /* card background, level 1 */
+        --surface-2: #1c1622; /* card background, level 2 (badges, inner accents) */
+        --line: rgba(255, 255, 255, 0.08); /* default hairline border */
+        --text: #f5f3f6; /* primary text (near-white) */
+        --text-dim: #9a92a3; /* secondary/body text */
+        --alarm: #ff453f; /* the one brand accent — red */
+        --alarm-dim: rgba(255, 69, 63, 0.12); /* red background tint */
+        --safe: #29c784; /* only for authentic UI conventions (e.g. iOS accept button) */
+        --safe-dim: rgba(41, 199, 132, 0.12);
+        --amber: #f5a623; /* sparingly, for spam-sender style labels */
+        --hexline: rgba(255, 69, 63, 0.16); /* hex-bg pattern stroke */
+        --hexfill: rgba(255, 69, 63, 0.04); /* hex-bg pattern fill */
+      }
+
+      /* ---- Reset ---- */
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      /* ---- Base typography (docs/DESIGN_SYSTEM.md §2) ----
+         Body copy: Noto Sans KR. Numbers/labels/data: .mono (IBM Plex
+         Mono) — deliberately NOT Space Grotesk/Inter, see design doc
+         for why those read as "generic AI-generated" choices. */
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Noto Sans KR", sans-serif;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+      }
+      .mono {
+        font-family: "IBM Plex Mono", monospace;
+      }
+
+      /* ---- Layout container (docs/DESIGN_SYSTEM.md §3) ----
+         Every section's content lives inside .wrap. Full-bleed color
+         blocks (banners etc.) must still be wrapped in this so they
+         get the same side margins as everything else. */
+      .wrap {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 0 32px;
+      }
+      @media (max-width: 720px) {
+        .wrap {
+          padding: 0 20px;
+        }
+      }
+
+      /* ---- Hexagon background texture (docs/DESIGN_SYSTEM.md §4) ----
+         Pure-CSS honeycomb pattern, reused everywhere a decorative
+         background is needed. Always pair with a low opacity + a
+         radial-gradient mask — never used at full strength/no mask. */
+      .hex-bg {
+        background-image: linear-gradient(
+            30deg,
+            var(--hexline) 12%,
+            transparent 12.5%,
+            transparent 87%,
+            var(--hexline) 87.5%,
+            var(--hexline)
+          ),
+          linear-gradient(
+            150deg,
+            var(--hexline) 12%,
+            transparent 12.5%,
+            transparent 87%,
+            var(--hexline) 87.5%,
+            var(--hexline)
+          ),
+          linear-gradient(
+            30deg,
+            var(--hexline) 12%,
+            transparent 12.5%,
+            transparent 87%,
+            var(--hexline) 87.5%,
+            var(--hexline)
+          ),
+          linear-gradient(
+            150deg,
+            var(--hexline) 12%,
+            transparent 12.5%,
+            transparent 87%,
+            var(--hexline) 87.5%,
+            var(--hexline)
+          ),
+          linear-gradient(
+            60deg,
+            var(--hexfill) 25%,
+            transparent 25.5%,
+            transparent 75%,
+            var(--hexfill) 75%,
+            var(--hexfill)
+          ),
+          linear-gradient(
+            60deg,
+            var(--hexfill) 25%,
+            transparent 25.5%,
+            transparent 75%,
+            var(--hexfill) 75%,
+            var(--hexfill)
+          );
+        background-size: 44px 76px;
+        background-position: 0 0, 0 0, 22px 38px, 22px 38px, 0 0, 22px 38px;
+      }
+
+      /* NAV (docs/DESIGN_SYSTEM.md §5.1) */
+      nav {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: rgba(8, 6, 10, 0.85);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--line);
+      }
+      nav .wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 72px;
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 16px;
+        letter-spacing: -0.01em;
+      }
+      .logo-mark {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: var(--alarm-dim);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+      .logo-mark::after {
+        content: "";
+        width: 10px;
+        height: 10px;
+        border: 2px solid var(--alarm);
+        border-top: none;
+        border-right: none;
+        transform: rotate(-45deg) translate(1px, -1px);
+      }
+      .nav-links {
+        display: flex;
+        gap: 32px;
+        font-size: 14px;
+        color: var(--text-dim);
+      }
+      .nav-links a {
+        color: inherit;
+        text-decoration: none;
+      }
+      .cta-btn {
+        background: var(--text);
+        color: var(--bg);
+        border: none;
+        padding: 11px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 700;
+        font-family: inherit;
+        cursor: pointer;
+      }
+      @media (max-width: 720px) {
+        .nav-links {
+          display: none;
+        }
+      }
+
+      /* ---- Shared UI primitives: headings, buttons, eyebrow tag
+         (docs/DESIGN_SYSTEM.md §2, §5.2, §5.3) ----
+         Reused across every section, not scoped to any one page. */
+      h1 {
+        font-size: 50px;
+        font-weight: 900;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+        margin-bottom: 22px;
+      }
+      h1 .accent {
+        color: var(--alarm);
+      }
+      @media (max-width: 720px) {
+        h1 {
+          font-size: 32px;
+        }
+      }
+      h2 {
+        font-size: 32px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        line-height: 1.3;
+      }
+      @media (max-width: 720px) {
+        h2 {
+          font-size: 25px;
+        }
+      }
+      .btn-primary {
+        background: var(--alarm);
+        color: #2a0806;
+        border: none;
+        padding: 15px 26px;
+        border-radius: 10px;
+        font-size: 15px;
+        font-weight: 700;
+        font-family: inherit;
+        cursor: pointer;
+      }
+      .btn-ghost {
+        background: transparent;
+        color: var(--text);
+        border: 1px solid var(--line);
+        padding: 15px 22px;
+        border-radius: 10px;
+        font-size: 15px;
+        font-family: inherit;
+        cursor: pointer;
+      }
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        color: var(--alarm);
+        background: var(--alarm-dim);
+        border: 1px solid rgba(255, 69, 63, 0.25);
+        padding: 6px 12px;
+        border-radius: 100px;
+        margin-bottom: 22px;
+      }
+      .eyebrow .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--alarm);
+        animation: pulse 1.6s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.25;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .eyebrow .dot {
+          animation: none;
+        }
+      }
+
+      /* entrance reveal — hero-only, above the fold (docs/DESIGN_SYSTEM.md §6.1) */
+      .reveal-in {
+        opacity: 0;
+        transform: translateY(16px);
+        animation: heroFadeUp 0.8s cubic-bezier(0.16, 0.8, 0.24, 1) forwards;
+      }
+      @keyframes heroFadeUp {
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      .delay-1 {
+        animation-delay: 0.05s;
+      }
+      .delay-2 {
+        animation-delay: 0.17s;
+      }
+      .delay-3 {
+        animation-delay: 0.29s;
+      }
+      .delay-4 {
+        animation-delay: 0.41s;
+      }
+      .delay-5 {
+        animation-delay: 0.53s;
+      }
+
+      /* HERO — centered, oversized device (docs/DESIGN_SYSTEM.md §5.11) */
+      .hero {
+        position: relative;
+        overflow: hidden;
+        text-align: center;
+        padding: 56px 0 100px;
+      }
+      .hero-stage {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        opacity: 0;
+        animation: heroFadeIn 1s ease forwards;
+        animation-delay: 0.15s;
+      }
+      @keyframes heroFadeIn {
+        to {
+          opacity: 1;
+        }
+      }
+      .hero-thread {
+        width: 2px;
+        height: 56px;
+        filter: blur(1.5px);
+        background: linear-gradient(
+          to bottom,
+          transparent,
+          rgba(255, 69, 63, 0.6)
+        );
+      }
+      .phone-glow-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        perspective: 1100px;
+      }
+      .hex-halo {
+        position: absolute;
+        width: 900px;
+        height: 900px;
+      }
+      .hex-layer {
+        position: absolute;
+        inset: 0;
+      }
+      .hex-layer.layer-1 {
+        filter: blur(0px);
+        mask-image: radial-gradient(circle, black 18%, transparent 42%);
+        -webkit-mask-image: radial-gradient(
+          circle,
+          black 18%,
+          transparent 42%
+        );
+      }
+      .hex-layer.layer-2 {
+        filter: blur(7px);
+        mask-image: radial-gradient(circle, black 30%, transparent 64%);
+        -webkit-mask-image: radial-gradient(
+          circle,
+          black 30%,
+          transparent 64%
+        );
+      }
+      .hex-layer.layer-3 {
+        filter: blur(18px);
+        mask-image: radial-gradient(circle, black 22%, transparent 88%);
+        -webkit-mask-image: radial-gradient(
+          circle,
+          black 22%,
+          transparent 88%
+        );
+      }
+      .glow-blob {
+        position: absolute;
+        width: 520px;
+        height: 600px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(255, 69, 63, 0.26),
+          rgba(255, 69, 63, 0) 75%
+        );
+        filter: blur(30px);
+      }
+      .phone-float {
+        position: relative;
+        z-index: 2;
+        animation: floatY 6.5s ease-in-out infinite;
+      }
+      @keyframes floatY {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-16px);
+        }
+      }
+      .hero-text-center {
+        position: relative;
+        z-index: 5;
+        max-width: 560px;
+        margin: -300px auto 0;
+        padding: 36px 24px;
+      }
+      .hero-text-center::before {
+        content: "";
+        position: absolute;
+        inset: -90px -100px;
+        z-index: -1;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        mask-image: radial-gradient(
+          ellipse at center,
+          black 0%,
+          black 35%,
+          transparent 72%
+        );
+        -webkit-mask-image: radial-gradient(
+          ellipse at center,
+          black 0%,
+          black 35%,
+          transparent 72%
+        );
+        background: radial-gradient(
+          ellipse at center,
+          rgba(8, 6, 10, 0.94) 0%,
+          rgba(8, 6, 10, 0.75) 35%,
+          rgba(8, 6, 10, 0.35) 60%,
+          transparent 80%
+        );
+      }
+      @media (max-width: 720px) {
+        .hero-text-center {
+          margin-top: -160px;
+        }
+      }
+      .hero-sub {
+        font-size: 17px;
+        color: var(--text-dim);
+        margin: 0 auto 32px;
+        max-width: 460px;
+      }
+      .hero-actions {
+        display: flex;
+        gap: 14px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .reveal-in,
+        .hero-stage {
+          animation: none !important;
+          opacity: 1 !important;
+          transform: none !important;
+        }
+        .phone-float {
+          animation: none !important;
+        }
+      }
+
+      /* realistic device frame — iOS incoming-call mock (docs/DESIGN_SYSTEM.md §5.11) */
+      .device-frame {
+        position: relative;
+        width: 300px;
+        height: 624px;
+        border-radius: 56px;
+        background: linear-gradient(
+          160deg,
+          #55555c 0%,
+          #2c2c32 14%,
+          #1b1b20 45%,
+          #0c0c0e 85%
+        );
+        padding: 3px;
+        box-shadow: 0 80px 140px -30px rgba(0, 0, 0, 0.8),
+          0 24px 48px -20px rgba(0, 0, 0, 0.6),
+          inset 0 1px 1px rgba(255, 255, 255, 0.18),
+          inset 0 -1px 2px rgba(0, 0, 0, 0.7);
+      }
+      .device-frame::before,
+      .device-frame::after {
+        content: "";
+        position: absolute;
+        left: -2px;
+        width: 3px;
+        border-radius: 3px 0 0 3px;
+        background: linear-gradient(
+          90deg,
+          #050506,
+          #333338 40%,
+          #050506
+        );
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      }
+      .device-frame::before {
+        top: 118px;
+        height: 28px;
+      }
+      .device-frame::after {
+        top: 158px;
+        height: 56px;
+      }
+      .device-volume-down {
+        position: absolute;
+        left: -2px;
+        top: 224px;
+        width: 3px;
+        height: 56px;
+        border-radius: 3px 0 0 3px;
+        background: linear-gradient(90deg, #050506, #333338 40%, #050506);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      }
+      .device-power {
+        position: absolute;
+        right: -2px;
+        top: 176px;
+        width: 3px;
+        height: 90px;
+        border-radius: 0 3px 3px 0;
+        background: linear-gradient(90deg, #050506, #333338 60%, #050506);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      }
+      .device-screen {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border-radius: 53px;
+        overflow: hidden;
+        background: radial-gradient(circle at 30% 0%, #241118, #08060a 68%);
+        box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.6),
+          inset 0 0 0 1px rgba(0, 0, 0, 0.9);
+      }
+      .device-island {
+        position: absolute;
+        top: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 96px;
+        height: 26px;
+        border-radius: 100px;
+        background: #000;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding-right: 10px;
+      }
+      .device-island::after {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 35%, #3a4a5c, #0a1016 70%);
+      }
+      .device-statusbar {
+        position: relative;
+        z-index: 4;
+        padding: 20px 26px 0;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.55);
+        letter-spacing: 0.02em;
+      }
+      .device-reflection {
+        position: absolute;
+        inset: 0;
+        z-index: 3;
+        pointer-events: none;
+        background: linear-gradient(
+            115deg,
+            rgba(255, 255, 255, 0.1) 0%,
+            rgba(255, 255, 255, 0) 20%
+          ),
+          linear-gradient(
+            300deg,
+            rgba(255, 255, 255, 0.05) 0%,
+            rgba(255, 255, 255, 0) 15%
+          );
+      }
+      .call-screen {
+        position: absolute;
+        z-index: 2;
+        top: 64px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        text-align: center;
+        padding: 28px 20px 42px;
+      }
+      .call-top {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .incoming-tag {
+        display: inline-block;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 10.5px;
+        letter-spacing: 0.08em;
+        color: var(--alarm);
+        margin-bottom: 30px;
+      }
+      .call-avatar {
+        width: 112px;
+        height: 112px;
+        margin-bottom: 22px;
+        border-radius: 50%;
+        background: linear-gradient(160deg, #3a1614, #1c0d0c);
+        border: 1px solid rgba(255, 69, 63, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 38px;
+        font-weight: 700;
+        color: var(--alarm);
+      }
+      .call-name {
+        font-size: 23px;
+        font-weight: 700;
+        margin-bottom: 6px;
+      }
+      .call-sub {
+        font-size: 14px;
+        color: var(--text-dim);
+      }
+      .call-actions {
+        display: flex;
+        justify-content: center;
+        gap: 68px;
+      }
+      .call-action {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+      .call-btn {
+        width: 62px;
+        height: 62px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.5);
+      }
+      .call-btn svg {
+        width: 26px;
+        height: 26px;
+        fill: #fff;
+      }
+      .call-btn.decline {
+        background: var(--alarm);
+      }
+      .call-btn.decline svg {
+        transform: rotate(135deg);
+      }
+      .call-btn.accept {
+        background: var(--safe);
+      }
+      .call-action-label {
+        font-size: 11.5px;
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      @media (max-width: 480px) {
+        .device-frame {
+          width: 236px;
+          height: 488px;
+          border-radius: 44px;
+        }
+        .device-screen {
+          border-radius: 41px;
+        }
+        .hero-thread {
+          height: 40px;
+        }
+      }
+
+      /* SECTIONS — left-aligned, editorial (docs/DESIGN_SYSTEM.md §3) */
+      .section {
+        padding: 96px 0;
+      }
+      .section-head {
+        max-width: 560px;
+        margin-bottom: 52px;
+      }
+      .section-eyebrow {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        color: var(--alarm);
+        margin-bottom: 14px;
+      }
+
+      /* SPINE — center thread runs hero → footer, JS-built (docs/DESIGN_SYSTEM.md §5.9) */
+      .spine-base,
+      .spine-glow {
+        position: absolute;
+        left: 50%;
+        width: 1px;
+        transform: translateX(-50%);
+        pointer-events: none;
+        z-index: 0;
+      }
+      .spine-base {
+        background: rgba(255, 69, 63, 0.1);
+        filter: blur(2px);
+      }
+      .spine-glow {
+        width: 5px;
+        background: rgba(255, 69, 63, 0.65);
+        filter: blur(5px);
+        box-shadow: 0 0 22px rgba(255, 69, 63, 0.5),
+          0 0 44px rgba(255, 69, 63, 0.25);
+        clip-path: inset(0 0 100% 0);
+      }
+      @media (max-width: 720px) {
+        .spine-base,
+        .spine-glow {
+          display: none;
+        }
+      }
+
+      /* FLOW — zigzag cards + glowing curve + card-light (docs/DESIGN_SYSTEM.md §5.6-5.8) */
+      .flow-diagram {
+        position: relative;
+      }
+      .flow-svg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        overflow: visible;
+        pointer-events: none;
+        z-index: 0;
+      }
+      .flow-path-bg {
+        fill: none;
+        stroke: rgba(255, 69, 63, 0.15);
+        stroke-width: 1.5;
+      }
+      .flow-path-glow {
+        fill: none;
+        stroke: rgba(255, 69, 63, 0.75);
+        stroke-width: 3.5;
+        stroke-linecap: round;
+        filter: blur(2px)
+          drop-shadow(0 0 10px rgba(255, 69, 63, 0.7))
+          drop-shadow(0 0 22px rgba(255, 69, 63, 0.4));
+      }
+      .flow-list {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 88px;
+        padding: 12px 0;
+      }
+      .flow-row {
+        position: relative;
+        overflow: hidden;
+        max-width: 46%;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-top: 2px solid rgba(255, 69, 63, 0.45);
+        border-radius: 4px;
+        padding: 40px 38px;
+      }
+      .flow-row.align-right {
+        margin-left: auto;
+      }
+      .card-light {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0;
+        background: radial-gradient(
+          ellipse 130% 70% at 50% -10%,
+          rgba(255, 69, 63, 0.4),
+          transparent 65%
+        );
+        transition: opacity 0.12s linear;
+      }
+      .flow-card-head,
+      .flow-row > p {
+        position: relative;
+        z-index: 1;
+      }
+      .flow-card-head {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        margin-bottom: 16px;
+      }
+      .flow-badge {
+        flex-shrink: 0;
+        width: 52px;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0% 50%);
+        background: var(--surface-2);
+        border: 1px solid rgba(255, 69, 63, 0.45);
+        color: var(--alarm);
+        font-family: "IBM Plex Mono", monospace;
+        font-weight: 700;
+        font-size: 14px;
+        box-shadow: 0 0 18px rgba(255, 69, 63, 0.22);
+      }
+      .flow-row h4 {
+        font-size: 18px;
+        font-weight: 700;
+      }
+      .flow-row p {
+        font-size: 14px;
+        color: var(--text-dim);
+      }
+      @media (max-width: 720px) {
+        .flow-svg {
+          display: none;
+        }
+        .flow-list {
+          gap: 24px;
+        }
+        .flow-row,
+        .flow-row.align-right {
+          max-width: 100%;
+          margin-left: 0;
+          padding: 30px 26px;
+        }
+      }
+      .flow-summary {
+        margin-top: 48px;
+        background: var(--surface);
+        border: 1px solid rgba(255, 69, 63, 0.3);
+        border-top: 2px solid rgba(255, 69, 63, 0.6);
+        border-radius: 4px;
+        padding: 44px;
+      }
+      .flow-summary p {
+        color: var(--text-dim);
+        font-size: 15px;
+        margin: 14px 0 26px;
+        max-width: 480px;
+      }
+      @media (max-width: 720px) {
+        .flow-summary {
+          padding: 32px 24px;
+        }
+      }
+
+      /* MESSAGE MOCK — asymmetric pairing, not centered (docs/DESIGN_SYSTEM.md §0-5) */
+      .msg-section {
+        padding-top: 32px;
+      }
+      .msg-row-outer {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 56px;
+        align-items: center;
+      }
+      @media (max-width: 720px) {
+        .msg-row-outer {
+          grid-template-columns: 1fr;
+          gap: 28px;
+        }
+      }
+      .msg-card {
+        justify-self: end;
+        width: 100%;
+        max-width: 420px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-top: 2px solid rgba(255, 69, 63, 0.45);
+        border-radius: 4px;
+        padding: 22px 24px;
+      }
+      @media (max-width: 720px) {
+        .msg-card {
+          justify-self: stretch;
+          max-width: none;
+        }
+      }
+      .msg-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .msg-avatar {
+        width: 42px;
+        height: 42px;
+        flex-shrink: 0;
+        border-radius: 12px;
+        background: var(--alarm-dim);
+        border: 1px solid rgba(255, 69, 63, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--alarm);
+      }
+      .msg-meta {
+        flex: 1;
+        min-width: 0;
+      }
+      .msg-sender {
+        font-size: 11px;
+        color: var(--amber);
+        margin-bottom: 2px;
+      }
+      .msg-preview {
+        font-size: 13.5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .msg-time {
+        font-size: 11px;
+        color: var(--text-dim);
+        flex-shrink: 0;
+      }
+      .msg-caption {
+        justify-self: start;
+        max-width: 380px;
+        font-size: 22px;
+        font-weight: 700;
+        line-height: 1.5;
+      }
+
+      /* WHY STATS — bento hierarchy, not 3 equal cards (docs/DESIGN_SYSTEM.md §5.5) */
+      .why-grid {
+        display: grid;
+        grid-template-columns: 1.3fr 1fr;
+        grid-auto-rows: 1fr;
+        gap: 20px;
+      }
+      .why-tile {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-top: 2px solid rgba(255, 69, 63, 0.4);
+        border-radius: 4px;
+        padding: 32px 28px;
+        background: var(--surface);
+      }
+      .why-tile.featured {
+        grid-row: 1 / 3;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 40px 34px;
+      }
+      .why-tile .hex-bg {
+        position: absolute;
+        inset: 0;
+        opacity: 0.12;
+        mask-image: radial-gradient(ellipse at 30% 30%, black, transparent 75%);
+        -webkit-mask-image: radial-gradient(
+          ellipse at 30% 30%,
+          black,
+          transparent 75%
+        );
+      }
+      .why-tile-inner {
+        position: relative;
+      }
+      .why-num {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 38px;
+        font-weight: 700;
+        color: var(--alarm);
+        letter-spacing: -0.02em;
+      }
+      .why-tile.featured .why-num {
+        font-size: 62px;
+      }
+      .why-label {
+        font-size: 13.5px;
+        color: var(--text-dim);
+        margin-top: 8px;
+      }
+      .why-tile.featured .why-label {
+        font-size: 14.5px;
+        margin-top: 10px;
+      }
+      @media (max-width: 720px) {
+        .why-grid {
+          grid-template-columns: 1fr;
+        }
+        .why-tile.featured {
+          grid-row: auto;
+        }
+      }
+
+      /* IMPACT — grounded before/after, no fabricated data (docs/DESIGN_SYSTEM.md §7) */
+      .impact-row {
+        display: flex;
+        align-items: center;
+        gap: 28px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+      .impact-block .impact-label {
+        font-size: 13.5px;
+        color: var(--text-dim);
+        margin-bottom: 8px;
+      }
+      .impact-num {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 64px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--text-dim);
+      }
+      .impact-num.accent {
+        color: var(--alarm);
+      }
+      .impact-arrow {
+        font-size: 28px;
+        color: var(--text-dim);
+      }
+      @media (max-width: 720px) {
+        .impact-num {
+          font-size: 44px;
+        }
+      }
+      .impact-note {
+        font-size: 13.5px;
+        color: var(--text-dim);
+        max-width: 480px;
+      }
+
+      /* THESIS QUOTE — sourced from the proposal, not a fabricated review (docs/DESIGN_SYSTEM.md §5.12) */
+      .thesis-block {
+        max-width: 660px;
+      }
+      .thesis-eyebrow {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        color: var(--alarm);
+        margin-bottom: 18px;
+      }
+      .thesis-block blockquote {
+        font-size: 30px;
+        font-weight: 900;
+        line-height: 1.35;
+        letter-spacing: -0.01em;
+        margin-bottom: 18px;
+      }
+      @media (max-width: 720px) {
+        .thesis-block blockquote {
+          font-size: 22px;
+        }
+      }
+      .thesis-block .thesis-sub {
+        font-size: 15px;
+        color: var(--text-dim);
+        max-width: 480px;
+      }
+
+      /* CTA BANNER — always wrapped in .wrap, never full-bleed (docs/DESIGN_SYSTEM.md §5.10) */
+      .cta-banner {
+        background: var(--alarm);
+        color: #2a0806;
+        padding: 32px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+      }
+      .cta-banner-section {
+        padding: 48px 0;
+      }
+      .cta-banner .headline {
+        font-size: 20px;
+        font-weight: 900;
+      }
+      .cta-banner a {
+        color: #2a0806;
+        font-weight: 700;
+        font-size: 15px;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      @media (max-width: 720px) {
+        .cta-banner {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+
+      /* TYPE GRID — chapter numbering is real product sequence (docs/DESIGN_SYSTEM.md §0-3) */
+      .type-section {
+        position: relative;
+      }
+      .type-section .hex-bg {
+        position: absolute;
+        inset: 0;
+        opacity: 0.3;
+        mask-image: radial-gradient(ellipse at 20% 30%, black, transparent 65%);
+        -webkit-mask-image: radial-gradient(
+          ellipse at 20% 30%,
+          black,
+          transparent 65%
+        );
+      }
+      .type-grid {
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 20px;
+      }
+      @media (max-width: 960px) {
+        .type-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+      @media (max-width: 600px) {
+        .type-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .type-card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-top: 2px solid rgba(255, 69, 63, 0.4);
+        border-radius: 4px;
+        padding: 24px 22px;
+      }
+      .type-card .type-chapter {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 12px;
+        color: var(--alarm);
+        margin-bottom: 14px;
+      }
+      .type-card h4 {
+        font-size: 15px;
+        font-weight: 700;
+        margin-bottom: 6px;
+      }
+      .type-card p {
+        font-size: 12.5px;
+        color: var(--text-dim);
+      }
+
+      /* FOOTER CTA — hex-bg glow moved off-center, not a random shape (docs/DESIGN_SYSTEM.md §4) */
+      .footer-cta {
+        position: relative;
+        padding: 100px 0 90px;
+        overflow: hidden;
+      }
+      .footer-glow {
+        position: absolute;
+        inset: 0;
+        opacity: 0.3;
+        mask-image: radial-gradient(ellipse at 80% 30%, black, transparent 65%);
+        -webkit-mask-image: radial-gradient(
+          ellipse at 80% 30%,
+          black,
+          transparent 65%
+        );
+      }
+      .footer-cta-inner {
+        position: relative;
+        max-width: 560px;
+      }
+      .footer-cta h2 {
+        margin-bottom: 14px;
+      }
+      .footer-cta p {
+        color: var(--text-dim);
+        font-size: 15px;
+        margin-bottom: 32px;
+      }
+
+      footer {
+        border-top: 1px solid var(--line);
+        padding: 36px 0;
+      }
+      footer .wrap {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 13px;
+        color: var(--text-dim);
+      }
+      @media (max-width: 720px) {
+        footer .wrap {
+          flex-direction: column;
+          gap: 12px;
+          text-align: center;
+        }
+      }
+
+      /* SCROLL REVEAL — below the fold, IntersectionObserver-driven (docs/DESIGN_SYSTEM.md §6.2) */
+      .flow-row,
+      .flow-summary,
+      .msg-card,
+      .msg-caption,
+      .why-tile,
+      .thesis-block,
+      .type-card,
+      .footer-cta-inner {
+        opacity: 0;
+        transform: translateY(22px);
+        transition: opacity 0.7s cubic-bezier(0.16, 0.8, 0.24, 1),
+          transform 0.7s cubic-bezier(0.16, 0.8, 0.24, 1);
+      }
+      .flow-row.is-visible,
+      .flow-summary.is-visible,
+      .msg-card.is-visible,
+      .msg-caption.is-visible,
+      .why-tile.is-visible,
+      .thesis-block.is-visible,
+      .type-card.is-visible,
+      .footer-cta-inner.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .flow-list .flow-row:nth-child(2) {
+        transition-delay: 0.08s;
+      }
+      .flow-list .flow-row:nth-child(3) {
+        transition-delay: 0.16s;
+      }
+      .type-grid .type-card:nth-child(2) {
+        transition-delay: 0.08s;
+      }
+      .type-grid .type-card:nth-child(3) {
+        transition-delay: 0.16s;
+      }
+      .type-grid .type-card:nth-child(4) {
+        transition-delay: 0.24s;
+      }
+      .type-grid .type-card:nth-child(5) {
+        transition-delay: 0.32s;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .flow-row,
+        .flow-summary,
+        .msg-card,
+        .msg-caption,
+        .why-tile,
+        .thesis-block,
+        .type-card,
+        .footer-cta-inner {
+          opacity: 1;
+          transform: none;
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <div class="wrap">
+        <div class="logo"><span class="logo-mark"></span>피싱 디펜스</div>
+        <div class="nav-links">
+          <a href="#types">사기 유형</a>
+          <a href="#flow">이용 과정</a>
+          <a href="#why">통계</a>
+        </div>
+        <button class="cta-btn">시작하기</button>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div class="hero-stage">
+        <div class="hero-thread"></div>
+        <div class="phone-glow-wrap">
+          <div class="hex-halo">
+            <div class="hex-layer layer-3 hex-bg"></div>
+            <div class="hex-layer layer-2 hex-bg"></div>
+            <div class="hex-layer layer-1 hex-bg"></div>
+          </div>
+          <div class="glow-blob"></div>
+          <div class="phone-float">
+            <div class="device-frame">
+              <div class="device-volume-down"></div>
+              <div class="device-power"></div>
+              <div class="device-screen">
+                <div class="device-reflection"></div>
+                <div class="device-island"></div>
+                <div class="device-statusbar mono">9:41</div>
+                <div class="call-screen">
+                  <div class="call-top">
+                    <div class="incoming-tag mono">
+                      실전 훈련 시나리오 · 검찰 사칭
+                    </div>
+                    <div class="call-avatar">검</div>
+                    <div class="call-name">서울중앙지검 수사관</div>
+                    <div class="call-sub">발신번호 확인 불가</div>
+                  </div>
+                  <div class="call-actions">
+                    <div class="call-action">
+                      <div class="call-btn decline">
+                        <svg viewBox="0 0 24 24">
+                          <path
+                            d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"
+                          ></path>
+                        </svg>
+                      </div>
+                      <span class="call-action-label">거절</span>
+                    </div>
+                    <div class="call-action">
+                      <div class="call-btn accept">
+                        <svg viewBox="0 0 24 24">
+                          <path
+                            d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"
+                          ></path>
+                        </svg>
+                      </div>
+                      <span class="call-action-label">훈련 시작</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="wrap hero-text-center">
+        <h1 class="reveal-in delay-3">
+          전화를 받기 전에,<br />먼저 <span class="accent">연습</span>하세요
+        </h1>
+        <p class="hero-sub reveal-in delay-4">
+          AI가 실제 사기꾼처럼 전화하고 채팅합니다. 경고 문자로는 배울 수
+          없는 대응 감각을, 안전한 훈련으로 몸에 익히세요.
+        </p>
+        <div class="hero-actions reveal-in delay-5">
+          <button class="btn-primary">무료로 훈련 시작하기</button>
+          <button class="btn-ghost">시뮬레이션 미리보기</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="flow">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="section-eyebrow">HOW IT HAPPENS</div>
+          <h2>공격은 이렇게 스며듭니다</h2>
+        </div>
+        <div class="flow-diagram">
+          <svg class="flow-svg" aria-hidden="true">
+            <path class="flow-path-bg"></path>
+            <path class="flow-path-glow"></path>
+          </svg>
+          <div class="flow-list">
+            <div class="flow-row align-left">
+              <div class="card-light" aria-hidden="true"></div>
+              <div class="flow-card-head">
+                <div class="flow-badge">01</div>
+                <h4>문자 한 통으로 시작됩니다</h4>
+              </div>
+              <p>
+                결제 알림, 택배 도착, 자녀의 연락 — 일상적인 문자처럼
+                옵니다.
+              </p>
+            </div>
+            <div class="flow-row align-right">
+              <div class="card-light" aria-hidden="true"></div>
+              <div class="flow-card-head">
+                <div class="flow-badge">02</div>
+                <h4>이름 하나로 신뢰를 얻습니다</h4>
+              </div>
+              <p>
+                기관명과 직함, 그럴듯한 말투만으로 의심은 빠르게
+                무너집니다.
+              </p>
+            </div>
+            <div class="flow-row align-left">
+              <div class="card-light" aria-hidden="true"></div>
+              <div class="flow-card-head">
+                <div class="flow-badge">03</div>
+                <h4>눈치채기도 전에 정보는 넘어갑니다</h4>
+              </div>
+              <p>
+                80% 이상의 피해자가 "피싱인 줄 몰라서" 당합니다 — 판단이
+                늦으면 이미 늦습니다.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="flow-summary">
+          <div class="section-eyebrow">NO INSTALL, 3 MIN</div>
+          <h2>지금 훈련하지 않으면,<br />다음은 당신 차례일 수 있습니다</h2>
+          <p>
+            설치도, 준비도 필요 없습니다. AI 사기범과의 실전 대화로 3분 만에
+            첫 훈련을 시작하세요.
+          </p>
+          <button class="btn-primary">무료로 훈련 시작하기</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section msg-section">
+      <div class="wrap msg-row-outer">
+        <div class="msg-card">
+          <div class="msg-row">
+            <div class="msg-avatar">은</div>
+            <div class="msg-meta">
+              <div class="msg-sender">Web발신</div>
+              <div class="msg-preview">
+                [국민은행] 고객님의 계좌에서 500,000원이 결제되었습니다...
+              </div>
+            </div>
+            <div class="msg-time">방금</div>
+          </div>
+        </div>
+        <p class="msg-caption">
+          피싱, 스미싱, 보이스피싱...<br />결국 누군가는 속아 넘어갑니다.
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="why">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="section-eyebrow">WHY 피싱 디펜스</div>
+          <h2>숫자로 보는 피싱의 현실</h2>
+        </div>
+        <div class="why-grid">
+          <div class="why-tile featured">
+            <div class="hex-bg"></div>
+            <div class="why-tile-inner">
+              <div class="why-num mono">200억+</div>
+              <div class="why-label">연간 보이스피싱 피해액 (경찰청, 2024)</div>
+            </div>
+          </div>
+          <div class="why-tile">
+            <div class="hex-bg"></div>
+            <div class="why-tile-inner">
+              <div class="why-num mono">80%</div>
+              <div class="why-label">"피싱인 줄 몰라서" 피해를 입은 비율</div>
+            </div>
+          </div>
+          <div class="why-tile">
+            <div class="hex-bg"></div>
+            <div class="why-tile-inner">
+              <div class="why-num mono">50%+</div>
+              <div class="why-label">스미싱 피해, 매년 증가하는 비율</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="wrap">
+        <div class="impact-row">
+          <div class="impact-block">
+            <div class="impact-label">훈련 전 피싱 인지도</div>
+            <div class="impact-num mono">45%</div>
+          </div>
+          <div class="impact-arrow mono">→</div>
+          <div class="impact-block">
+            <div class="impact-label">훈련 후 피싱 인지도 (목표)</div>
+            <div class="impact-num mono accent">85%</div>
+          </div>
+        </div>
+        <p class="impact-note">
+          * 기획 단계의 목표 수치이며, 파일럿 운영을 통해 검증할 예정입니다.
+        </p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="wrap">
+        <div class="thesis-block">
+          <div class="thesis-eyebrow">우리가 만드는 것</div>
+          <blockquote>
+            "교육이 아닌, 게임처럼 느껴지는 실전 훈련."
+          </blockquote>
+          <p class="thesis-sub">
+            포스터와 경고 문자로는 배울 수 없는 대응 감각을, 반복 가능한
+            실전 대화로 익힙니다.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <div class="cta-banner-section">
+      <div class="wrap">
+        <div class="cta-banner">
+          <div class="headline mono">지금 바로 무료로 훈련 시작하기</div>
+          <a href="#">시작하기 →</a>
+        </div>
+      </div>
+    </div>
+
+    <section class="section type-section" id="types">
+      <div class="hex-bg"></div>
+      <div class="wrap">
+        <div class="section-head">
+          <div class="section-eyebrow">SCENARIO TYPES</div>
+          <h2>다양한 사기 유형을 훈련하세요</h2>
+        </div>
+        <div class="type-grid">
+          <div class="type-card">
+            <div class="type-chapter mono">CHAPTER 01</div>
+            <h4>기초 스미싱</h4>
+            <p>결제·택배 문자로 위장한 가장 흔한 유형</p>
+          </div>
+          <div class="type-card">
+            <div class="type-chapter mono">CHAPTER 02</div>
+            <h4>택배 사칭</h4>
+            <p>배송 조회 링크로 개인정보를 유도</p>
+          </div>
+          <div class="type-card">
+            <div class="type-chapter mono">CHAPTER 03</div>
+            <h4>가족 사칭</h4>
+            <p>자녀·부모를 사칭해 긴급 송금을 요구</p>
+          </div>
+          <div class="type-card">
+            <div class="type-chapter mono">CHAPTER 04</div>
+            <h4>금융기관 사칭</h4>
+            <p>계좌 정지·대환대출을 빙자한 정보 탈취</p>
+          </div>
+          <div class="type-card">
+            <div class="type-chapter mono">CHAPTER 05</div>
+            <h4>검찰 사칭</h4>
+            <p>수사 협조를 빙자한 가장 정교한 고난도 유형</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="wrap">
+      <div class="footer-cta">
+        <div class="footer-glow hex-bg"></div>
+        <div class="footer-cta-inner">
+          <h2>다음 전화가 오기 전에,<br />먼저 받아보세요</h2>
+          <p>가입은 무료이고, 첫 훈련은 3분이면 충분합니다.</p>
+          <button class="btn-primary">무료로 훈련 시작하기</button>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <div class="wrap">
+        <span>© 2026 피싱 디펜스</span>
+        <span>실제 사례 기반 시나리오 · AI 시뮬레이션</span>
+      </div>
+    </footer>
+
+    <script>
+      // Scroll-reveal: fades each card in the first time it enters the
+      // viewport (docs/DESIGN_SYSTEM.md §6.2). Runs once per element.
+      var revealSelector =
+        ".flow-row, .flow-summary, .msg-card, .msg-caption, .why-tile, .thesis-block, .type-card, .footer-cta-inner";
+      var reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
+      var revealEls = document.querySelectorAll(revealSelector);
+      if (reduceMotion || !("IntersectionObserver" in window)) {
+        revealEls.forEach(function (el) {
+          el.classList.add("is-visible");
+        });
+      } else {
+        var io = new IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (entry) {
+              if (entry.isIntersecting) {
+                entry.target.classList.add("is-visible");
+                io.unobserve(entry.target);
+              }
+            });
+          },
+          { threshold: 0.15 }
+        );
+        revealEls.forEach(function (el) {
+          io.observe(el);
+        });
+      }
+    </script>
+
+    <script>
+      // Flow diagram connector: draws a curved SVG path through the
+      // .flow-badge centers and reveals it (stroke-dashoffset) as the
+      // user scrolls (docs/DESIGN_SYSTEM.md §5.7).
+      (function () {
+        var svg = document.querySelector(".flow-svg");
+        var diagram = document.querySelector(".flow-diagram");
+        if (!svg || !diagram) return;
+        var bg = svg.querySelector(".flow-path-bg");
+        var glow = svg.querySelector(".flow-path-glow");
+        var badges = diagram.querySelectorAll(".flow-badge");
+        if (badges.length < 2) return;
+        var reduceMotion = window.matchMedia(
+          "(prefers-reduced-motion: reduce)"
+        ).matches;
+
+        function build() {
+          if (window.innerWidth <= 720) return;
+          var rect = diagram.getBoundingClientRect();
+          svg.setAttribute("width", rect.width);
+          svg.setAttribute("height", rect.height);
+          svg.setAttribute(
+            "viewBox",
+            "0 0 " + rect.width + " " + rect.height
+          );
+          var pts = [];
+          badges.forEach(function (b) {
+            var r = b.getBoundingClientRect();
+            pts.push({
+              x: r.left + r.width / 2 - rect.left,
+              y: r.top + r.height / 2 - rect.top,
+            });
+          });
+          var d = "M " + pts[0].x.toFixed(1) + " " + pts[0].y.toFixed(1);
+          for (var i = 1; i < pts.length; i++) {
+            var p0 = pts[i - 1],
+              p1 = pts[i];
+            var midY = (p0.y + p1.y) / 2;
+            d +=
+              " C " +
+              p0.x.toFixed(1) +
+              " " +
+              midY.toFixed(1) +
+              ", " +
+              p1.x.toFixed(1) +
+              " " +
+              midY.toFixed(1) +
+              ", " +
+              p1.x.toFixed(1) +
+              " " +
+              p1.y.toFixed(1);
+          }
+          bg.setAttribute("d", d);
+          glow.setAttribute("d", d);
+          var len = glow.getTotalLength();
+          glow.style.strokeDasharray = String(len);
+          glow.dataset.len = String(len);
+          updateProgress();
+        }
+
+        function updateProgress() {
+          var len = parseFloat(glow.dataset.len || "0");
+          if (!len) return;
+          if (reduceMotion) {
+            glow.style.strokeDashoffset = "0";
+            return;
+          }
+          var rect = diagram.getBoundingClientRect();
+          var vh = window.innerHeight;
+          var progress = (vh * 0.85 - rect.top) / (rect.height + vh * 0.5);
+          progress = Math.max(0, Math.min(1, progress));
+          glow.style.strokeDashoffset = String(len * (1 - progress));
+        }
+
+        var ticking = false;
+        function onScrollOrResize() {
+          if (ticking) return;
+          ticking = true;
+          requestAnimationFrame(function () {
+            updateProgress();
+            ticking = false;
+          });
+        }
+        window.addEventListener("scroll", onScrollOrResize, {
+          passive: true,
+        });
+        window.addEventListener("resize", build);
+        build();
+      })();
+    </script>
+
+    <script>
+      // Page-wide "spine": three glowing line segments running from the
+      // hero down to the footer, gapped around the solid-color CTA
+      // banner so the line never draws across it (docs/DESIGN_SYSTEM.md
+      // §5.9). Segments are inserted at the front of <body> — see the
+      // note below on why appendChild would break this.
+      (function () {
+        var heroThread = document.querySelector(".hero-thread");
+        var flowDiagram = document.querySelector(".flow-diagram");
+        var flowSummary = document.querySelector(".flow-summary");
+        var ctaBanner = document.querySelector(".cta-banner");
+        var footerCta = document.querySelector(".footer-cta");
+        if (
+          !heroThread ||
+          !flowDiagram ||
+          !flowSummary ||
+          !ctaBanner ||
+          !footerCta
+        )
+          return;
+        var reduceMotion = window.matchMedia(
+          "(prefers-reduced-motion: reduce)"
+        ).matches;
+        var GAP = 32;
+
+        function edgeY(el, edge) {
+          var r = el.getBoundingClientRect();
+          return (edge === "bottom" ? r.bottom : r.top) + window.scrollY;
+        }
+
+        var insertAnchor = document.body.firstChild;
+        function makeSegment() {
+          var base = document.createElement("div");
+          base.className = "spine-base";
+          base.setAttribute("aria-hidden", "true");
+          var glow = document.createElement("div");
+          glow.className = "spine-glow";
+          glow.setAttribute("aria-hidden", "true");
+          // Insert at the very start of <body> (not appended at the end)
+          // so cards and sections that come later in the DOM paint over
+          // the line instead of the line drawing on top of them.
+          document.body.insertBefore(base, insertAnchor);
+          document.body.insertBefore(glow, insertAnchor);
+          return { base: base, glow: glow, top: 0, height: 0 };
+        }
+
+        var segments = [makeSegment(), makeSegment(), makeSegment()];
+
+        function build() {
+          var hide = window.innerWidth <= 720;
+          segments.forEach(function (seg) {
+            seg.base.style.display = hide ? "none" : "";
+            seg.glow.style.display = hide ? "none" : "";
+          });
+          if (hide) return;
+
+          var ranges = [
+            [edgeY(heroThread, "top"), edgeY(flowDiagram, "top")],
+            [
+              edgeY(flowSummary, "bottom"),
+              edgeY(ctaBanner, "top") - GAP,
+            ],
+            [edgeY(ctaBanner, "bottom") + GAP, edgeY(footerCta, "top")],
+          ];
+          ranges.forEach(function (r, i) {
+            var seg = segments[i];
+            seg.top = r[0];
+            seg.height = Math.max(0, r[1] - r[0]);
+            seg.base.style.top = seg.top + "px";
+            seg.base.style.height = seg.height + "px";
+            seg.glow.style.top = seg.top + "px";
+            seg.glow.style.height = seg.height + "px";
+          });
+          updateProgress();
+        }
+
+        function updateProgress() {
+          var viewportBottomDoc = window.scrollY + window.innerHeight * 0.85;
+          segments.forEach(function (seg) {
+            if (!seg.height) {
+              seg.glow.style.clipPath = "inset(0 0 100% 0)";
+              return;
+            }
+            if (reduceMotion) {
+              seg.glow.style.clipPath = "inset(0 0 0% 0)";
+              return;
+            }
+            var progress = (viewportBottomDoc - seg.top) / seg.height;
+            progress = Math.max(0, Math.min(1, progress));
+            seg.glow.style.clipPath =
+              "inset(0 0 " + (1 - progress) * 100 + "% 0)";
+          });
+        }
+
+        var ticking = false;
+        function onScrollOrResize() {
+          if (ticking) return;
+          ticking = true;
+          requestAnimationFrame(function () {
+            updateProgress();
+            ticking = false;
+          });
+        }
+        window.addEventListener("scroll", onScrollOrResize, {
+          passive: true,
+        });
+        window.addEventListener("resize", build);
+        build();
+      })();
+    </script>
+
+    <script>
+      // Card spotlight: highlights each .flow-row card with a soft red
+      // wash as the spine's glowing point passes it, based on scroll
+      // proximity (docs/DESIGN_SYSTEM.md §5.8).
+      (function () {
+        var rows = document.querySelectorAll(".flow-row");
+        if (!rows.length) return;
+        var reduceMotion = window.matchMedia(
+          "(prefers-reduced-motion: reduce)"
+        ).matches;
+        if (reduceMotion) return;
+
+        function update() {
+          var lightDocY = window.scrollY + window.innerHeight * 0.85;
+          rows.forEach(function (row) {
+            var light = row.querySelector(".card-light");
+            if (!light) return;
+            var rect = row.getBoundingClientRect();
+            var cardTop = rect.top + window.scrollY;
+            var cardCenter = cardTop + rect.height / 2;
+            var range = rect.height / 2 + 240;
+            var dist = Math.abs(lightDocY - cardCenter);
+            var proximity = 1 - Math.min(dist / range, 1);
+            light.style.opacity = String(proximity);
+          });
+        }
+
+        var ticking = false;
+        function onScrollOrResize() {
+          if (ticking) return;
+          ticking = true;
+          requestAnimationFrame(function () {
+            update();
+            ticking = false;
+          });
+        }
+        window.addEventListener("scroll", onScrollOrResize, {
+          passive: true,
+        });
+        window.addEventListener("resize", onScrollOrResize);
+        update();
+      })();
+    </script>
+  </body>
+</html>
