@@ -206,14 +206,6 @@ GET    /api/v1/users/me/achievements        업적 조회
 GET    /api/v1/users/me/inventory           인벤토리
 ```
 
-### Mission API
-```
-GET    /api/v1/missions/daily               일일 미션 조회
-POST   /api/v1/missions/{id}/complete       미션 완료
-GET    /api/v1/attendance                   출석 현황
-POST   /api/v1/attendance/check-in          출석 체크인
-```
-
 ---
 
 ## 6. 프롬프트 예제 (LLM)
