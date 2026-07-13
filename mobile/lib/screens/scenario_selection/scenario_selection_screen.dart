@@ -85,7 +85,17 @@ class _ScenarioSelectionScreenState extends State<ScenarioSelectionScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('피싱 디펜스'),
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/images/logo_dark.png',
+              width: 28,
+              height: 28,
+            ),
+            const SizedBox(width: 8),
+            const Text('피싱 디펜스'),
+          ],
+        ),
         actions: [
           IconButton(
             onPressed: _logout,

@@ -90,6 +90,14 @@ class _SignupScreenState extends State<SignupScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 12),
+                Center(
+                  child: Image.asset(
+                    'assets/images/logo_dark.png',
+                    width: 72,
+                    height: 72,
+                  ),
+                ),
+                const SizedBox(height: 16),
                 Text(
                   '피싱 디펜스와 함께 훈련을 시작해보세요.',
                   style: textTheme.bodyMedium?.copyWith(

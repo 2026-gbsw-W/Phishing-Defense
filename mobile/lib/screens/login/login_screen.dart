@@ -87,20 +87,12 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: AppColors.alarm.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Icon(
-                      Icons.shield_rounded,
-                      color: AppColors.alarm,
-                      size: 32,
-                    ),
+                  Image.asset(
+                    'assets/images/logo_dark.png',
+                    width: 100,
+                    height: 100,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   Text('피싱 디펜스', style: textTheme.headlineMedium),
                   const SizedBox(height: 4),
                   Text(
