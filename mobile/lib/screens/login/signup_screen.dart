@@ -60,6 +60,7 @@ class _SignupScreenState extends State<SignupScreen> {
         nickname: nickname,
       );
       await SessionStore.save(session);
+      await SessionStore.saveLastEmail(email);
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,

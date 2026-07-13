@@ -23,6 +23,19 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _errorText;
 
   @override
+  void initState() {
+    super.initState();
+    _fillRememberedEmail();
+  }
+
+  Future<void> _fillRememberedEmail() async {
+    final lastEmail = await SessionStore.loadLastEmail();
+    if (mounted && lastEmail != null) {
+      _emailController.text = lastEmail;
+    }
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
@@ -46,6 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final session = await AuthApi.login(email: email, password: password);
       await SessionStore.save(session);
+      await SessionStore.saveLastEmail(email);
       if (!mounted) return;
       Navigator.pushReplacement(
         context,

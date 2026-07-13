@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import '../../models/scenario.dart';
 import '../../models/scenario_data.dart';
 import '../../services/game_progress.dart';
+import '../../services/session_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/scenario_card.dart';
+import '../login/login_screen.dart';
 import '../stage1_sms/sms_screen.dart';
 
 class ScenarioSelectionScreen extends StatelessWidget {
@@ -18,12 +20,31 @@ class ScenarioSelectionScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _logout(BuildContext context) async {
+    await SessionStore.clear();
+    if (!context.mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (_) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('피싱 디펜스')),
+      appBar: AppBar(
+        title: const Text('피싱 디펜스'),
+        actions: [
+          IconButton(
+            onPressed: () => _logout(context),
+            icon: const Icon(Icons.logout_rounded),
+            tooltip: '로그아웃',
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: [

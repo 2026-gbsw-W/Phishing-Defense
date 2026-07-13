@@ -12,6 +12,7 @@ class SessionStore {
   static const _keyEmail = 'auth.email';
   static const _keyNickname = 'auth.nickname';
   static const _keyLevel = 'auth.level';
+  static const _keyLastEmail = 'auth.lastEmail';
 
   static Future<void> save(AuthSession session) async {
     final prefs = await SharedPreferences.getInstance();
@@ -59,5 +60,17 @@ class SessionStore {
     await prefs.remove(_keyEmail);
     await prefs.remove(_keyNickname);
     await prefs.remove(_keyLevel);
+  }
+
+  /// 로그인 화면에서 마지막으로 로그인에 성공한 이메일을 기억해 자동으로
+  /// 채워준다. 로그아웃([clear])해도 지워지지 않는다.
+  static Future<void> saveLastEmail(String email) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyLastEmail, email);
+  }
+
+  static Future<String?> loadLastEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyLastEmail);
   }
 }
