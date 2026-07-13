@@ -88,4 +88,10 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ErrorResponse.of(HttpStatus.INTERNAL_SERVER_ERROR.value(), "FILE_STORAGE_ERROR", "파일 저장 중 오류가 발생했습니다."));
     }
+
+    @ExceptionHandler(AiServerCommunicationException.class)
+    public ResponseEntity<ErrorResponse> handleAiServerCommunication(AiServerCommunicationException e) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ErrorResponse.of(HttpStatus.SERVICE_UNAVAILABLE.value(), "AI_SERVER_UNAVAILABLE", e.getMessage()));
+    }
 }

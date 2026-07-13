@@ -1,6 +1,7 @@
 package com.phishingdefense.backend.dto.training;
 
 import com.phishingdefense.backend.entity.TrainingResult;
+import java.util.List;
 
 public record TrainingResultResponse(
         String sessionId,
@@ -12,6 +13,8 @@ public record TrainingResultResponse(
         Boolean suspiciousLink,
         Boolean userFellForIt,
         Integer riskScore,
+        List<String> dangerousMessages,
+        String evidenceFeedback,
         String goodPoints,
         String mistakes,
         String improvementTips
@@ -27,6 +30,8 @@ public record TrainingResultResponse(
                 result.getSuspiciousLink(),
                 result.getUserFellForIt(),
                 result.getRiskScore(),
+                result.getDangerousMessages(),
+                result.getEvidenceFeedback(),
                 result.getGoodPoints(),
                 result.getMistakes(),
                 result.getImprovementTips()

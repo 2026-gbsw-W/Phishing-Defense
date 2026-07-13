@@ -1,8 +1,9 @@
 package com.phishingdefense.backend.dto.ai;
 
-import java.util.Map;
+import com.phishingdefense.backend.dto.training.AiReportPayload;
 
 public record GenerateReportResponse(
-        Map<String, Object> reportJson
+        String sessionId,
+        AiReportPayload report
 ) {
 }
