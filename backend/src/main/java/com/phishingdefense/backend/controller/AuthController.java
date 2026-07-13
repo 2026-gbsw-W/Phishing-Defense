@@ -2,6 +2,7 @@ package com.phishingdefense.backend.controller;
 
 import com.phishingdefense.backend.dto.auth.AuthResponse;
 import com.phishingdefense.backend.dto.auth.LoginRequest;
+import com.phishingdefense.backend.dto.auth.RefreshTokenRequest;
 import com.phishingdefense.backend.dto.auth.SignupRequest;
 import com.phishingdefense.backend.service.AuthService;
 import jakarta.validation.Valid;
@@ -29,6 +30,12 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        AuthResponse response = authService.refresh(request);
         return ResponseEntity.ok(response);
     }
 }

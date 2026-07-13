@@ -2,13 +2,18 @@ package com.phishingdefense.backend.service;
 
 import com.phishingdefense.backend.dto.auth.AuthResponse;
 import com.phishingdefense.backend.dto.auth.LoginRequest;
+import com.phishingdefense.backend.dto.auth.RefreshTokenRequest;
 import com.phishingdefense.backend.dto.auth.SignupRequest;
+import com.phishingdefense.backend.entity.RefreshToken;
 import com.phishingdefense.backend.entity.User;
 import com.phishingdefense.backend.exception.DuplicateEmailException;
 import com.phishingdefense.backend.exception.DuplicateNicknameException;
 import com.phishingdefense.backend.exception.InvalidCredentialsException;
+import com.phishingdefense.backend.exception.InvalidRefreshTokenException;
+import com.phishingdefense.backend.repository.RefreshTokenRepository;
 import com.phishingdefense.backend.repository.UserRepository;
 import com.phishingdefense.backend.security.JwtTokenProvider;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
 
@@ -56,10 +62,35 @@ public class AuthService {
         return issueToken(user);
     }
 
+    @Transactional
+    public AuthResponse refresh(RefreshTokenRequest request) {
+        RefreshToken stored = refreshTokenRepository.findByToken(request.refreshToken())
+                .orElseThrow(InvalidRefreshTokenException::new);
+
+        if (stored.isExpired()) {
+            refreshTokenRepository.delete(stored);
+            throw new InvalidRefreshTokenException();
+        }
+
+        User user = userRepository.findById(stored.getUserId())
+                .orElseThrow(InvalidRefreshTokenException::new);
+
+        refreshTokenRepository.delete(stored);
+
+        return issueToken(user);
+    }
+
     private AuthResponse issueToken(User user) {
-        String token = jwtTokenProvider.generateToken(user.getUserId(), user.getEmail());
+        String accessToken = jwtTokenProvider.generateToken(user.getUserId(), user.getEmail());
+        String refreshToken = jwtTokenProvider.generateRefreshToken();
+        LocalDateTime refreshExpiresAt = LocalDateTime.now()
+                .plusSeconds(jwtTokenProvider.getRefreshExpirationMillis() / 1000);
+
+        refreshTokenRepository.save(RefreshToken.issue(user.getUserId(), refreshToken, refreshExpiresAt));
+
         return AuthResponse.of(
-                token,
+                accessToken,
+                refreshToken,
                 jwtTokenProvider.getExpirationMillis(),
                 user.getUserId(),
                 user.getEmail(),
