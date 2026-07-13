@@ -5,6 +5,7 @@ python-multipart
 langchain
 langchain-core
 langchain-openai
+langchain-ollama
 openai
 elevenlabs
 python-dotenv
@@ -14,3 +15,5 @@ sqlalchemy
 aiosqlite
 pandas
 numpy
+faster-whisper
+websockets
