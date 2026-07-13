@@ -674,22 +674,6 @@ CREATE TABLE attendance (
   FOREIGN KEY (user_id) REFERENCES users(user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
--- 12. PhishingIndex 테이블 (사용자 도감)
-CREATE TABLE phishing_index (
-  index_id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  user_id BIGINT NOT NULL,
-  
-  phishing_type VARCHAR(50) COMMENT 'family, delivery, bank, police, romance, etc',
-  variant_id INT COMMENT '같은 타입의 변형 번호',
-  variant_name VARCHAR(100),
-  
-  is_collected BOOLEAN DEFAULT FALSE,
-  collected_at TIMESTAMP,
-  
-  UNIQUE KEY unique_user_type_variant (user_id, phishing_type, variant_id),
-  FOREIGN KEY (user_id) REFERENCES users(user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
 ### 4.3 인덱스 전략
