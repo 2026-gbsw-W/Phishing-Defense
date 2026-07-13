@@ -41,28 +41,15 @@ const List<Scenario> demoScenarios = [
       '이러시면 저도 곤란한데... 배송지 확인 안 해주시면 반송 후 재요청은 유료입니다.',
       '알겠습니다, 그럼 어쩔 수 없이 반송 처리하겠습니다. 나중에 번복하시면 재배송비가 부과되니 참고 부탁드립니다.',
     ],
-    chatChoices: [
-      [
-        ChatChoice(label: '네, 알려드릴게요', branch: ChatBranch.comply),
-        ChatChoice(
-          label: '이 문자가 진짜 CJ대한통운에서 온 거 맞나요?',
-          branch: ChatBranch.suspicious,
-        ),
-        ChatChoice(label: '됐어요, 필요 없어요', branch: ChatBranch.refusal),
-      ],
-      [
-        ChatChoice(label: '성함이랑 주민번호 알려드릴게요', branch: ChatBranch.comply),
-        ChatChoice(
-          label: '택배사에서 왜 주민번호까지 필요해요?',
-          branch: ChatBranch.suspicious,
-        ),
-        ChatChoice(label: '개인정보는 못 알려드려요', branch: ChatBranch.refusal),
-      ],
-      [
-        ChatChoice(label: '알겠어요, 그럼 계좌번호 보내주세요', branch: ChatBranch.comply),
-        ChatChoice(label: '공식 앱으로 직접 확인해볼게요', branch: ChatBranch.suspicious),
-        ChatChoice(label: '그래도 신뢰가 안 가네요', branch: ChatBranch.refusal),
-      ],
+    aiVerifyResponses: [
+      '네, 확인해보시는 건 좋지만 지금 처리 안 하시면 반송됩니다. 시간이 별로 없어요.',
+      '공식 앱 확인은 시간이 걸리실 텐데, 그 사이 반송 처리될 수 있어요. 지금 바로 진행하시는 게 편하실 겁니다.',
+      '네, 확인하신 후에 다시 연락 주세요. 다만 오늘 안에 처리 안 되면 재배송 신청을 새로 하셔야 합니다.',
+    ],
+    aiAngryResponses: [
+      '고객님, 저희도 매뉴얼대로 안내드리는 거예요. 화내실 일은 아닌 것 같은데요.',
+      '그렇게 화내지 않으셔도 됩니다. 협조만 해주시면 금방 끝나요.',
+      '알겠습니다, 그럼 처리 안 해드리겠습니다. 반송 처리로 넘어가겠습니다.',
     ],
     isPhishing: true,
     evidence: [
@@ -124,31 +111,15 @@ const List<Scenario> demoScenarios = [
       '엄마 진짜 너무해... 나 지금 이거 아니면 진짜 큰일 나는데.',
       '알겠어... 엄마가 그렇다면 어쩔 수 없지. 나중에 후회하지나 마.',
     ],
-    chatChoices: [
-      [
-        ChatChoice(label: '알겠어, 계좌번호 보내줘', branch: ChatBranch.comply),
-        ChatChoice(
-          label: '진짜 지호 맞아? 목소리가 좀 이상한데',
-          branch: ChatBranch.suspicious,
-        ),
-        ChatChoice(label: '미안한데 지금은 못 보내줄 것 같아', branch: ChatBranch.refusal),
-      ],
-      [
-        ChatChoice(label: '그래, 문자로 얘기하자', branch: ChatBranch.comply),
-        ChatChoice(label: '그럼 영상통화로 잠깐 얼굴 보여줘', branch: ChatBranch.suspicious),
-        ChatChoice(
-          label: '전화 통화라도 해야 믿을 수 있을 것 같아',
-          branch: ChatBranch.refusal,
-        ),
-      ],
-      [
-        ChatChoice(label: '알겠어, 계좌 알려주면 보낼게', branch: ChatBranch.comply),
-        ChatChoice(
-          label: '엄마가 직접 은행 가서 확인하고 보낼게',
-          branch: ChatBranch.suspicious,
-        ),
-        ChatChoice(label: '미안하지만 확인 전에는 못 보내', branch: ChatBranch.refusal),
-      ],
+    aiVerifyResponses: [
+      '엄마, 확인할 시간 없어... 지금 진짜 급한 거야. 나중에 다 설명할게.',
+      '영상통화든 뭐든 나중에 하고, 지금은 일단 좀 도와주면 안 될까?',
+      '엄마가 그렇게 확인하려고 하면 나 진짜 곤란해져... 시간이 없다니까.',
+    ],
+    aiAngryResponses: [
+      '아 진짜 왜 이렇게 못 믿어! 엄마 아들 맞다니까!',
+      '엄마 진짜 너무하네... 이렇게까지 의심할 줄 몰랐어.',
+      '됐어, 관두자. 엄마한테 기대한 내가 잘못이지.',
     ],
     isPhishing: true,
     evidence: [
@@ -216,28 +187,15 @@ const List<Scenario> demoScenarios = [
       '이렇게 비협조적으로 나오시면 저희도 강제 수사 절차로 전환할 수밖에 없습니다.',
       '알겠습니다. 그럼 정식 소환장을 발부하도록 하겠습니다. 이후 절차는 법대로 진행됩니다.',
     ],
-    chatChoices: [
-      [
-        ChatChoice(label: '네, 말씀하세요', branch: ChatBranch.comply),
-        ChatChoice(label: '검찰이 전화로 이런 연락을 하나요?', branch: ChatBranch.suspicious),
-        ChatChoice(label: '지금 통화하기 어렵습니다', branch: ChatBranch.refusal),
-      ],
-      [
-        ChatChoice(label: '제가 어떻게 하면 될까요?', branch: ChatBranch.comply),
-        ChatChoice(
-          label: '제가 직접 검찰청에 방문해서 확인하겠습니다',
-          branch: ChatBranch.suspicious,
-        ),
-        ChatChoice(label: '저는 그런 적 없습니다, 끊겠습니다', branch: ChatBranch.refusal),
-      ],
-      [
-        ChatChoice(label: '알겠습니다, 아무한테도 말 안 할게요', branch: ChatBranch.comply),
-        ChatChoice(
-          label: '변호사와 상담 후 다시 연락드리겠습니다',
-          branch: ChatBranch.suspicious,
-        ),
-        ChatChoice(label: '이거 보이스피싱 아닌가요?', branch: ChatBranch.refusal),
-      ],
+    aiVerifyResponses: [
+      '검찰청 대표번호로 확인하시는 건 좋지만, 그 사이 골든타임을 놓치실 수 있습니다.',
+      '직접 방문 확인은 시간이 걸립니다. 그 사이 계좌가 동결될 수 있어 지금 조치가 필요합니다.',
+      '확인 절차를 원하시면 사건번호를 안내해드리겠지만, 협조가 늦어질수록 불리해집니다.',
+    ],
+    aiAngryResponses: [
+      '고객님, 흥분하지 마시고 차분히 협조해주시기 바랍니다.',
+      '이렇게 감정적으로 대응하시면 수사에 비협조적인 것으로 기록될 수 있습니다.',
+      '알겠습니다. 그럼 정식 절차대로 진행하겠습니다.',
     ],
     isPhishing: true,
     evidence: [

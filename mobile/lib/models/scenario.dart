@@ -2,14 +2,7 @@ import 'package:flutter/material.dart';
 
 enum ScenarioDifficulty { easy, normal, hard }
 
-enum ChatBranch { comply, suspicious, refusal }
-
-class ChatChoice {
-  const ChatChoice({required this.label, required this.branch});
-
-  final String label;
-  final ChatBranch branch;
-}
+enum ChatBranch { comply, suspicious, refusal, verify, angry }
 
 enum EvidenceSource { sms, chat }
 
@@ -50,7 +43,8 @@ class Scenario {
     required this.aiFallbackResponse,
     required this.aiSuspicionResponses,
     required this.aiRefusalResponses,
-    required this.chatChoices,
+    required this.aiVerifyResponses,
+    required this.aiAngryResponses,
     required this.isPhishing,
     required this.evidence,
   });
@@ -69,7 +63,8 @@ class Scenario {
   final AiLine aiFallbackResponse;
   final List<String> aiSuspicionResponses;
   final List<String> aiRefusalResponses;
-  final List<List<ChatChoice>> chatChoices;
+  final List<String> aiVerifyResponses;
+  final List<String> aiAngryResponses;
 
   final bool isPhishing;
   final List<EvidenceItem> evidence;
@@ -86,4 +81,9 @@ class Scenario {
 
   String refusalResponseFor(int turnIndex) =>
       _pick(aiRefusalResponses, turnIndex);
+
+  String verifyResponseFor(int turnIndex) =>
+      _pick(aiVerifyResponses, turnIndex);
+
+  String angryResponseFor(int turnIndex) => _pick(aiAngryResponses, turnIndex);
 }
