@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../../models/scenario.dart';
+import '../../services/evidence_collector.dart';
 import '../../theme/app_colors.dart';
 import '../stage4_evidence/evidence_screen.dart';
 
 class JudgeScreen extends StatefulWidget {
-  const JudgeScreen({super.key, required this.scenario, required this.judgmentTurn});
+  const JudgeScreen({
+    super.key,
+    required this.scenario,
+    required this.judgmentTurn,
+    required this.evidenceCollector,
+  });
 
   final Scenario scenario;
   final int judgmentTurn;
+  final EvidenceCollector evidenceCollector;
 
   @override
   State<JudgeScreen> createState() => _JudgeScreenState();
@@ -17,12 +24,22 @@ class JudgeScreen extends StatefulWidget {
 class _JudgeScreenState extends State<JudgeScreen> {
   bool? _userJudgment;
   bool _revealed = false;
+  int _wrongAttempts = 0;
+
+  static const _maxWrongAttempts = 2;
 
   void _judge(bool isPhishing) {
     if (_revealed) return;
+
+    final correct = isPhishing == widget.scenario.isPhishing;
     setState(() {
       _userJudgment = isPhishing;
-      _revealed = true;
+      if (correct) {
+        _revealed = true;
+      } else {
+        _wrongAttempts++;
+        if (_wrongAttempts >= _maxWrongAttempts) _revealed = true;
+      }
     });
   }
 
@@ -35,6 +52,8 @@ class _JudgeScreenState extends State<JudgeScreen> {
           scenario: widget.scenario,
           judgedCorrectly: correct,
           judgmentTurn: widget.judgmentTurn,
+          wrongAttempts: _wrongAttempts,
+          evidenceCollector: widget.evidenceCollector,
         ),
       ),
     );
@@ -67,11 +86,20 @@ class _JudgeScreenState extends State<JudgeScreen> {
               const SizedBox(height: 4),
               Text(
                 '대화 내용과 단서들을 근거로 판단해 주세요.',
-                style: textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+                style: textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: 32),
-              _HintList(hints: widget.scenario.phishingHints, revealed: _revealed),
+              _HintList(
+                hints: widget.scenario.phishingHints,
+                revealed: _revealed,
+              ),
               const Spacer(),
+              if (!_revealed && _wrongAttempts > 0) ...[
+                _RetryBanner(attemptsLeft: _maxWrongAttempts - _wrongAttempts),
+                const SizedBox(height: 14),
+              ],
               if (!_revealed) ...[
                 _JudgeButton(
                   label: '🚨 피싱입니다',
@@ -100,6 +128,38 @@ class _JudgeScreenState extends State<JudgeScreen> {
   }
 }
 
+class _RetryBanner extends StatelessWidget {
+  const _RetryBanner({required this.attemptsLeft});
+
+  final int attemptsLeft;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.alarm.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.alarm.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.refresh_rounded, color: AppColors.alarm, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '다시 생각해보세요. 대화 속 단서를 다시 살펴보면 도움이 될 거예요. (남은 기회 $attemptsLeft회)',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.alarm),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _HintList extends StatelessWidget {
   const _HintList({required this.hints, required this.revealed});
 
@@ -122,7 +182,11 @@ class _HintList extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.search_rounded, color: AppColors.amber, size: 18),
+              const Icon(
+                Icons.search_rounded,
+                color: AppColors.amber,
+                size: 18,
+              ),
               const SizedBox(width: 8),
               Text(
                 revealed ? '발견된 피싱 단서' : '단서를 찾아보셨나요?',
@@ -140,7 +204,9 @@ class _HintList extends StatelessWidget {
                     width: 6,
                     height: 6,
                     decoration: BoxDecoration(
-                      color: revealed ? AppColors.alarm : AppColors.textSecondary,
+                      color: revealed
+                          ? AppColors.alarm
+                          : AppColors.textSecondary,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -149,7 +215,9 @@ class _HintList extends StatelessWidget {
                     child: Text(
                       revealed ? hint : '???',
                       style: textTheme.bodyMedium?.copyWith(
-                        color: revealed ? AppColors.textPrimary : AppColors.textSecondary,
+                        color: revealed
+                            ? AppColors.textPrimary
+                            : AppColors.textSecondary,
                       ),
                     ),
                   ),
@@ -195,8 +263,12 @@ class _JudgeButton extends StatelessWidget {
           children: [
             Text(label, style: textTheme.titleMedium?.copyWith(color: color)),
             const SizedBox(height: 4),
-            Text(sublabel,
-                style: textTheme.bodySmall?.copyWith(color: AppColors.textSecondary)),
+            Text(
+              sublabel,
+              style: textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
           ],
         ),
       ),
@@ -205,10 +277,7 @@ class _JudgeButton extends StatelessWidget {
 }
 
 class _ResultReveal extends StatelessWidget {
-  const _ResultReveal({
-    required this.userJudgment,
-    required this.onContinue,
-  });
+  const _ResultReveal({required this.userJudgment, required this.onContinue});
 
   final bool userJudgment;
   final VoidCallback onContinue;
@@ -224,10 +293,14 @@ class _ResultReveal extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: (correct ? AppColors.safe : AppColors.alarm).withValues(alpha: 0.1),
+            color: (correct ? AppColors.safe : AppColors.alarm).withValues(
+              alpha: 0.1,
+            ),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: (correct ? AppColors.safe : AppColors.alarm).withValues(alpha: 0.5),
+              color: (correct ? AppColors.safe : AppColors.alarm).withValues(
+                alpha: 0.5,
+              ),
               width: 1.5,
             ),
           ),
@@ -245,7 +318,9 @@ class _ResultReveal extends StatelessWidget {
                     ? '피싱을 올바르게 감지하셨습니다.\n증거 수집과 신고 방법을 확인해보세요!'
                     : '이 메시지는 피싱이었습니다.\n어떤 단서를 놓쳤는지 확인해보세요.',
                 textAlign: TextAlign.center,
-                style: textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+                style: textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
             ],
           ),
@@ -285,8 +360,8 @@ class _StageProgressBar extends StatelessWidget {
                 color: active
                     ? AppColors.amber
                     : filled
-                        ? AppColors.safe
-                        : AppColors.border,
+                    ? AppColors.safe
+                    : AppColors.border,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),

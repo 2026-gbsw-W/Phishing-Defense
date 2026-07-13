@@ -31,14 +31,13 @@ class ScenarioSelectionScreen extends StatelessWidget {
             style: textTheme.labelMedium?.copyWith(color: AppColors.amber),
           ),
           const SizedBox(height: 8),
-          Text(
-            '어떤 상황을 훈련해볼까요?',
-            style: textTheme.headlineSmall,
-          ),
+          Text('어떤 상황을 훈련해볼까요?', style: textTheme.headlineSmall),
           const SizedBox(height: 4),
           Text(
             '실제 사례를 바탕으로 AI가 사기꾼처럼 전화/채팅합니다.',
-            style: textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+            style: textTheme.bodyMedium?.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
           const SizedBox(height: 24),
           _StatBar(),
@@ -73,9 +72,17 @@ class _StatBar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _StatItem(label: '레벨', value: 'Lv.${progress.level}', color: AppColors.amber),
+              _StatItem(
+                label: '레벨',
+                value: 'Lv.${progress.level}',
+                color: AppColors.amber,
+              ),
               Container(width: 1, height: 32, color: AppColors.border),
-              _StatItem(label: '총 XP', value: '${progress.totalXp}', color: AppColors.safe),
+              _StatItem(
+                label: '총 XP',
+                value: '${progress.totalXp}',
+                color: AppColors.safe,
+              ),
               Container(width: 1, height: 32, color: AppColors.border),
               _StatItem(
                 label: '완료',
@@ -91,7 +98,11 @@ class _StatBar extends StatelessWidget {
 }
 
 class _StatItem extends StatelessWidget {
-  const _StatItem({required this.label, required this.value, required this.color});
+  const _StatItem({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   final String label;
   final String value;
@@ -105,8 +116,10 @@ class _StatItem extends StatelessWidget {
       children: [
         Text(value, style: textTheme.titleLarge?.copyWith(color: color)),
         const SizedBox(height: 2),
-        Text(label,
-            style: textTheme.labelSmall?.copyWith(color: AppColors.textSecondary)),
+        Text(
+          label,
+          style: textTheme.labelSmall?.copyWith(color: AppColors.textSecondary),
+        ),
       ],
     );
   }

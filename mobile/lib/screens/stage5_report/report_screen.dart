@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/scenario.dart';
+import '../../services/evidence_collector.dart';
 import '../../theme/app_colors.dart';
 import '../stage6_result/result_screen.dart';
 
@@ -10,13 +11,15 @@ class ReportScreen extends StatefulWidget {
     required this.scenario,
     required this.judgedCorrectly,
     required this.judgmentTurn,
-    required this.evidenceCollectedPercentage,
+    required this.wrongAttempts,
+    required this.evidenceCollector,
   });
 
   final Scenario scenario;
   final bool judgedCorrectly;
   final int judgmentTurn;
-  final int evidenceCollectedPercentage;
+  final int wrongAttempts;
+  final EvidenceCollector evidenceCollector;
 
   @override
   State<ReportScreen> createState() => _ReportScreenState();
@@ -51,6 +54,7 @@ class _ReportScreenState extends State<ReportScreen> {
 
   void _proceedToResult() {
     final reportHandledCount = (_policeSent ? 1 : 0) + (_bankSent ? 1 : 0);
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -58,7 +62,8 @@ class _ReportScreenState extends State<ReportScreen> {
           scenario: widget.scenario,
           judgedCorrectly: widget.judgedCorrectly,
           judgmentTurn: widget.judgmentTurn,
-          evidenceCollectedPercentage: widget.evidenceCollectedPercentage,
+          wrongAttempts: widget.wrongAttempts,
+          evidenceCollector: widget.evidenceCollector,
           reportHandledCount: reportHandledCount,
         ),
       ),
@@ -98,7 +103,13 @@ class _ReportScreenState extends State<ReportScreen> {
               const SizedBox(height: 4),
               Text(
                 '경찰과 은행에 상황을 설명하고 필요한 조치를 요청하세요.',
-                style: textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+                style: textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 20),
+              _EvidenceSubmissionSelector(
+                evidenceCollector: widget.evidenceCollector,
               ),
               const SizedBox(height: 20),
               _ReportCard(
@@ -136,6 +147,89 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 }
 
+class _EvidenceSubmissionSelector extends StatelessWidget {
+  const _EvidenceSubmissionSelector({required this.evidenceCollector});
+
+  final EvidenceCollector evidenceCollector;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.bookmark_rounded,
+                color: AppColors.amber,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '📎 제출할 증거 선택',
+                style: textTheme.labelLarge?.copyWith(color: AppColors.amber),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '경찰·은행에 함께 제시할 증거를 골라주세요.',
+            style: textTheme.bodySmall?.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          AnimatedBuilder(
+            animation: evidenceCollector,
+            builder: (context, _) {
+              final saved = evidenceCollector.saved;
+              if (saved.isEmpty) {
+                return Text(
+                  '저장한 증거가 없습니다. Stage 4에서 증거를 확인해보세요.',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                );
+              }
+              final submitted = evidenceCollector.submittedSourceTexts;
+              return Column(
+                children: [
+                  for (final item in saved)
+                    CheckboxListTile(
+                      value: submitted.contains(item.sourceText),
+                      onChanged: (checked) => evidenceCollector.setSubmitted(
+                        item.sourceText,
+                        checked ?? false,
+                      ),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      activeColor: AppColors.amber,
+                      title: Text(
+                        '"${item.sourceText}"',
+                        style: textTheme.bodySmall,
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ReportCard extends StatelessWidget {
   const _ReportCard({
     required this.icon,
@@ -165,7 +259,9 @@ class _ReportCard extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: sent ? AppColors.safe.withValues(alpha: 0.5) : AppColors.border,
+          color: sent
+              ? AppColors.safe.withValues(alpha: 0.5)
+              : AppColors.border,
         ),
       ),
       child: Column(
@@ -187,12 +283,21 @@ class _ReportCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(title, style: textTheme.titleSmall),
-                    Text(subtitle,
-                        style: textTheme.labelSmall?.copyWith(color: AppColors.textSecondary)),
+                    Text(
+                      subtitle,
+                      style: textTheme.labelSmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              if (sent) const Icon(Icons.check_circle_rounded, color: AppColors.safe, size: 20),
+              if (sent)
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: AppColors.safe,
+                  size: 20,
+                ),
             ],
           ),
           const SizedBox(height: 14),
@@ -206,7 +311,10 @@ class _ReportCard extends StatelessWidget {
               ),
               child: Text(
                 reply!,
-                style: textTheme.bodyMedium?.copyWith(color: AppColors.textPrimary, height: 1.5),
+                style: textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textPrimary,
+                  height: 1.5,
+                ),
               ),
             )
           else
@@ -218,8 +326,9 @@ class _ReportCard extends StatelessWidget {
                     maxLines: null,
                     decoration: InputDecoration(
                       hintText: '상황을 설명해 주세요...',
-                      hintStyle:
-                          textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+                      hintStyle: textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                       filled: true,
                       fillColor: AppColors.background,
                       border: OutlineInputBorder(
@@ -234,8 +343,10 @@ class _ReportCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(14),
                         borderSide: const BorderSide(color: AppColors.amber),
                       ),
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                     ),
                   ),
                 ),
@@ -249,7 +360,11 @@ class _ReportCard extends StatelessWidget {
                       color: AppColors.amber,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.send_rounded, color: AppColors.background, size: 20),
+                    child: const Icon(
+                      Icons.send_rounded,
+                      color: AppColors.background,
+                      size: 20,
+                    ),
                   ),
                 ),
               ],
@@ -282,8 +397,8 @@ class _StageProgressBar extends StatelessWidget {
                 color: active
                     ? AppColors.amber
                     : filled
-                        ? AppColors.safe
-                        : AppColors.border,
+                    ? AppColors.safe
+                    : AppColors.border,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
