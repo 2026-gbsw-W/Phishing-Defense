@@ -49,6 +49,7 @@ public class ScenarioPlayService {
     private final ScenarioRecordRepository scenarioRecordRepository;
     private final EvidenceRepository evidenceRepository;
     private final UserRepository userRepository;
+    private final EvidenceExtractor evidenceExtractor;
 
     @Transactional
     public ScenarioStartResponse start(Long userId, Long scenarioId) {
@@ -57,6 +58,11 @@ public class ScenarioPlayService {
 
         ScenarioRecord record = ScenarioRecord.start(userId, stage.getChapterId(), stage.getStageId());
         ScenarioRecord saved = scenarioRecordRepository.save(record);
+
+        for (RequiredEvidenceEntry entry : evidenceExtractor.match(stage.getRequiredEvidence(), stage.getInitialMessage())) {
+            evidenceRepository.save(
+                    Evidence.discovered(saved.getRecordId(), entry.type(), entry.value(), 0, entry.importance()));
+        }
 
         return new ScenarioStartResponse(saved.getRecordId(), stage.getInitialMessage(), LocalDateTime.now());
     }
