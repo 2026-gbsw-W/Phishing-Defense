@@ -4,10 +4,8 @@
 
 ## 초기 셋업
 
-아직 프로젝트가 생성되지 않았습니다. [Spring Initializr](https://start.spring.io/)에서
-Gradle + Java, `Spring Web`, `Spring Data JPA`, `MySQL Driver` 의존성을 선택해 압축을 풀고
-이 폴더 안 내용으로 채우세요.
-
+Gradle + Java 21 기반 Spring Boot 프로젝트입니다 (패키지: `com.phishingdefense.backend`).
+    
 ## 실행
 
 ```bash
