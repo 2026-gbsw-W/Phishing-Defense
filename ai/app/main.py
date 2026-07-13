@@ -14,6 +14,7 @@ import json
 from urllib.parse import quote
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
+from fastapi import WebSocket, WebSocketDisconnect
 
 
 app = FastAPI()
@@ -38,6 +39,7 @@ llm = ChatOllama(
 session_histories: dict[str, list] = {}
 session_reports: dict[str, dict] = {}
 session_evidences: dict[str, list] = {}
+session_hints: dict[str, int] = {}
 
 
 
@@ -53,6 +55,9 @@ class EvidenceRequest(BaseModel):
     speaker: str = "AI(사기꾼)"
 
 class EndChatRequest(BaseModel):
+    session_id: str
+
+class HintRequest(BaseModel):
     session_id: str
 
 
@@ -122,6 +127,21 @@ ANALYSIS_PROMPT_TEMPLATE = """
 {evidence}
 """
 
+HINT_PROMPT_TEMPLATE = """
+당신은 보이스피싱 대응 훈련 AI 코치입니다.
+사용자는 현재 AI 사기꾼과 대화 중이며 대응에 어려움을 느끼고 있습니다.
+사용자가 스스로 판단할 수 있도록 단계별 힌트를 제공합니다.
+
+규칙:
+- 정답을 바로 알려주지 않습니다.
+- 의심해야 하는 부분을 알려줍니다.
+- 사용자가 다음 행동을 생각할 수 있도록 유도합니다.
+- 짧고 이해하기 쉬운 한국어로 답변합니다.
+
+현재 대화:
+{conversation}
+"""
+
 def format_conversation(history: list) -> str:
     lines = []
     for msg in history:
@@ -158,6 +178,37 @@ def save_evidence(req: EvidenceRequest):
     return {
         "message": "증거가 저장되었습니다.",
         "evidence": evidence
+    }
+
+@app.post("/hint")
+def get_hint(req: HintRequest):
+
+    if req.session_id not in session_histories:
+        raise HTTPException(
+            status_code=404,
+            detail="세션을 찾을 수 없습니다."
+        )
+
+    history = session_histories[req.session_id]
+
+    conversation_text = format_conversation(history)
+
+    prompt = HINT_PROMPT_TEMPLATE.format(
+        conversation=conversation_text
+    )
+
+    response = llm.invoke(
+        [HumanMessage(content=prompt)]
+    )
+
+    session_hints[req.session_id] = (
+        session_hints.get(req.session_id, 0) + 1
+    )
+
+    return {
+        "session_id": req.session_id,
+        "hint": response.content,
+        "hint_count": session_hints[req.session_id]
     }
 
 @app.post("/chat/end")
@@ -269,3 +320,106 @@ def voice_chat(
                 "X-AI-Text": quote(chat_result["answer"]),
             }
         )
+
+@app.websocket("/voice-call/{scenario_type}")
+async def voice_call(
+    websocket: WebSocket,
+    scenario_type: str
+):
+
+    await websocket.accept()
+
+    # 1. 세션 생성
+    session_id = str(uuid.uuid4())
+
+    session_hints[session_id] = 0
+    session_evidences[session_id] = []
+
+
+    try:
+
+        # 2. AI 첫 멘트
+        first_response = chat(ChatRequest(
+            message="전화가 연결되었습니다. 피싱 상황의 첫 멘트를 시작하세요.",
+            session_id=session_id,
+            scenario_type=scenario_type
+
+))
+
+
+        # 3. TTS 생성
+        first_audio = f"response_{uuid.uuid4()}.mp3"
+
+        synthesize_speech(
+            first_response["answer"],
+            first_audio
+        )
+
+
+        with open(first_audio, "rb") as f:
+            voice = f.read()
+
+
+        await websocket.send_json({
+            "session_id": session_id,
+            "ai_text": first_response["answer"]
+        })
+
+        await websocket.send_bytes(voice)
+
+        os.remove(first_audio)
+
+
+        # 4. 사용자 음성 반복
+        while True:
+
+            audio_data = await websocket.receive_bytes()
+
+            input_path = f"temp_{uuid.uuid4()}.wav"
+
+            with open(input_path, "wb") as f:
+                f.write(audio_data)
+
+            user_text = transcribe_audio(input_path)
+
+            os.remove(input_path)
+
+            print("사용자:", user_text)
+
+            result = chat(ChatRequest(
+                message=user_text,
+                session_id=session_id,
+                scenario_type=scenario_type
+            ))
+
+            ai_text = result["answer"]
+
+            output_path = f"response_{uuid.uuid4()}.mp3"
+
+            synthesize_speech(
+                ai_text,
+                output_path
+            )
+
+            with open(output_path, "rb") as f:
+                voice = f.read()
+
+            await websocket.send_json({
+                "session_id": session_id,
+                "user_text": user_text,
+                "ai_text": ai_text
+            })
+
+            await websocket.send_bytes(voice)
+
+            os.remove(output_path)
+
+    except WebSocketDisconnect:
+        print("통화 종료")
+
+        if session_id in session_histories:
+            end_chat(
+                EndChatRequest(
+                    session_id=session_id
+                )
+            )

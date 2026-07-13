@@ -3,7 +3,7 @@ from core.config import settings
 
 _client = ElevenLabs(api_key=settings.ELEVENLABS_API_KEY)
 
-MOCK_TTS = True  # 개발 중엔 True, 최종 데모 리허설 때만 False로 바꿔서 테스트
+MOCK_TTS = False  # 개발 중엔 True, 최종 데모 리허설 때만 False로 바꿔서 테스트
 
 
 def synthesize_speech(text: str, output_path: str) -> str:
