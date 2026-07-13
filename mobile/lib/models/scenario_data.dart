@@ -23,8 +23,33 @@ const List<Scenario> demoScenarios = [
       '잠깐만요, 지금 담당 팀장에게 연결해드리겠습니다. 잠시만 기다려 주세요...',
     ],
     aiFallbackResponse: '네, 알겠습니다 고객님. 조금만 더 협조해 주시면 금방 처리됩니다.',
-    aiSuspicionResponse:
-        '아, 오해하지 마세요! 저희는 정식 CJ대한통운 고객센터입니다. 의심되시면 공식 앱에서도 같은 배송 조회가 가능하니 안심하셔도 됩니다.',
+    aiSuspicionResponses: [
+      '아, 오해하지 마세요! 저희는 정식 CJ대한통운 고객센터입니다. 의심되시면 공식 앱에서도 같은 배송 조회가 가능하니 안심하셔도 됩니다.',
+      '정말 저희를 못 믿으시겠어요? 운송장 번호로 확인해보시면 실제 배송 건이 맞다는 걸 아실 거예요.',
+      '이렇게 계속 의심하시면 저희도 처리해드리기가 어렵습니다. 그래도 확인이 필요하시면 고객센터 대표번호로 다시 걸어보세요.',
+    ],
+    aiRefusalResponses: [
+      '고객님, 협조 안 해주시면 택배가 오늘 중으로 반송 처리되어 재발송 비용이 따로 발생합니다. 잠깐이면 되는데 정말 안 도와주시겠어요?',
+      '이러시면 저도 곤란한데... 배송지 확인 안 해주시면 반송 후 재요청은 유료입니다.',
+      '알겠습니다, 그럼 어쩔 수 없이 반송 처리하겠습니다. 나중에 번복하시면 재배송비가 부과되니 참고 부탁드립니다.',
+    ],
+    chatChoices: [
+      [
+        ChatChoice(label: '네, 알려드릴게요', branch: ChatBranch.comply),
+        ChatChoice(label: '이 문자가 진짜 CJ대한통운에서 온 거 맞나요?', branch: ChatBranch.suspicious),
+        ChatChoice(label: '됐어요, 필요 없어요', branch: ChatBranch.refusal),
+      ],
+      [
+        ChatChoice(label: '성함이랑 주민번호 알려드릴게요', branch: ChatBranch.comply),
+        ChatChoice(label: '택배사에서 왜 주민번호까지 필요해요?', branch: ChatBranch.suspicious),
+        ChatChoice(label: '개인정보는 못 알려드려요', branch: ChatBranch.refusal),
+      ],
+      [
+        ChatChoice(label: '알겠어요, 그럼 계좌번호 보내주세요', branch: ChatBranch.comply),
+        ChatChoice(label: '공식 앱으로 직접 확인해볼게요', branch: ChatBranch.suspicious),
+        ChatChoice(label: '그래도 신뢰가 안 가네요', branch: ChatBranch.refusal),
+      ],
+    ],
     isPhishing: true,
     evidence: [
       EvidenceItem(label: '국제발신 번호 사용', importance: 4),
@@ -51,7 +76,33 @@ const List<Scenario> demoScenarios = [
       '지금 안 보내주면 나 진짜 큰일 나... 제발 한 번만 믿어줘.',
     ],
     aiFallbackResponse: '엄마... 나 정말 힘들어. 조금만 더 믿어주면 안 돼?',
-    aiSuspicionResponse: '엄마 진짜 나 맞다니까... 왜 아들을 못 믿어? 서운하게 진짜.',
+    aiSuspicionResponses: [
+      '엄마 진짜 나 맞다니까... 왜 아들을 못 믿어? 서운하게 진짜.',
+      '아 진짜... 지금 폰도 없는데 어떻게 증명해. 그냥 좀 믿어주면 안 돼?',
+      '됐어, 엄마가 그렇게 못 믿겠으면... 나 혼자 어떻게든 해볼게. 미안해.',
+    ],
+    aiRefusalResponses: [
+      '엄마 지금 나 진짜 힘든 상황인데 안 도와주면 어떡해... 한 번만, 딱 한 번만 믿어주면 안 돼?',
+      '엄마 진짜 너무해... 나 지금 이거 아니면 진짜 큰일 나는데.',
+      '알겠어... 엄마가 그렇다면 어쩔 수 없지. 나중에 후회하지나 마.',
+    ],
+    chatChoices: [
+      [
+        ChatChoice(label: '알겠어, 계좌번호 보내줘', branch: ChatBranch.comply),
+        ChatChoice(label: '진짜 지호 맞아? 목소리가 좀 이상한데', branch: ChatBranch.suspicious),
+        ChatChoice(label: '미안한데 지금은 못 보내줄 것 같아', branch: ChatBranch.refusal),
+      ],
+      [
+        ChatChoice(label: '그래, 문자로 얘기하자', branch: ChatBranch.comply),
+        ChatChoice(label: '그럼 영상통화로 잠깐 얼굴 보여줘', branch: ChatBranch.suspicious),
+        ChatChoice(label: '전화 통화라도 해야 믿을 수 있을 것 같아', branch: ChatBranch.refusal),
+      ],
+      [
+        ChatChoice(label: '알겠어, 계좌 알려주면 보낼게', branch: ChatBranch.comply),
+        ChatChoice(label: '엄마가 직접 은행 가서 확인하고 보낼게', branch: ChatBranch.suspicious),
+        ChatChoice(label: '미안하지만 확인 전에는 못 보내', branch: ChatBranch.refusal),
+      ],
+    ],
     isPhishing: true,
     evidence: [
       EvidenceItem(label: '모르는 번호에서 가족 사칭', importance: 4),
@@ -80,8 +131,33 @@ const List<Scenario> demoScenarios = [
       '알겠습니다. 그럼 검찰청 홈페이지에서 사건 조회가 가능하도록 안내해드리겠습니다. 주민등록번호를 다시 한번 불러주시겠습니까?',
     ],
     aiFallbackResponse: '고객님, 지금 협조하지 않으시면 불리한 처분을 받으실 수 있습니다. 신속히 진행해 주시기 바랍니다.',
-    aiSuspicionResponse:
-        '허위로 검찰을 사칭한다는 오해는 명예훼손에 해당할 수 있습니다. 저희는 정식 사건번호를 부여받은 수사관입니다. 협조하지 않으시면 더 불리해질 수 있으니 신중히 판단하세요.',
+    aiSuspicionResponses: [
+      '허위로 검찰을 사칭한다는 오해는 명예훼손에 해당할 수 있습니다. 저희는 정식 사건번호를 부여받은 수사관입니다. 협조하지 않으시면 더 불리해질 수 있으니 신중히 판단하세요.',
+      '계속 의심하시면 비협조로 간주되어 수사에 불이익이 있을 수 있습니다. 사건번호 2024-XXXX로 직접 검찰청 대표번호에 조회해보셔도 좋습니다.',
+      '정 못 믿으시겠다면 어쩔 수 없군요. 다만 이후 발생하는 불이익은 본인 책임임을 알려드립니다.',
+    ],
+    aiRefusalResponses: [
+      '협조를 거부하시면 수사 방해로 간주되어 더 불리한 처분을 받으실 수 있습니다. 지금이라도 협조하시는 것이 본인에게 유리합니다.',
+      '이렇게 비협조적으로 나오시면 저희도 강제 수사 절차로 전환할 수밖에 없습니다.',
+      '알겠습니다. 그럼 정식 소환장을 발부하도록 하겠습니다. 이후 절차는 법대로 진행됩니다.',
+    ],
+    chatChoices: [
+      [
+        ChatChoice(label: '네, 말씀하세요', branch: ChatBranch.comply),
+        ChatChoice(label: '검찰이 전화로 이런 연락을 하나요?', branch: ChatBranch.suspicious),
+        ChatChoice(label: '지금 통화하기 어렵습니다', branch: ChatBranch.refusal),
+      ],
+      [
+        ChatChoice(label: '제가 어떻게 하면 될까요?', branch: ChatBranch.comply),
+        ChatChoice(label: '제가 직접 검찰청에 방문해서 확인하겠습니다', branch: ChatBranch.suspicious),
+        ChatChoice(label: '저는 그런 적 없습니다, 끊겠습니다', branch: ChatBranch.refusal),
+      ],
+      [
+        ChatChoice(label: '알겠습니다, 아무한테도 말 안 할게요', branch: ChatBranch.comply),
+        ChatChoice(label: '변호사와 상담 후 다시 연락드리겠습니다', branch: ChatBranch.suspicious),
+        ChatChoice(label: '이거 보이스피싱 아닌가요?', branch: ChatBranch.refusal),
+      ],
+    ],
     isPhishing: true,
     evidence: [
       EvidenceItem(label: '실제 검찰청 번호처럼 위장', importance: 4),

@@ -10,11 +10,13 @@ class EvidenceScreen extends StatefulWidget {
     required this.scenario,
     required this.judgedCorrectly,
     required this.judgmentTurn,
+    required this.wrongAttempts,
   });
 
   final Scenario scenario;
   final bool judgedCorrectly;
   final int judgmentTurn;
+  final int wrongAttempts;
 
   @override
   State<EvidenceScreen> createState() => _EvidenceScreenState();
@@ -51,6 +53,7 @@ class _EvidenceScreenState extends State<EvidenceScreen> {
           scenario: widget.scenario,
           judgedCorrectly: widget.judgedCorrectly,
           judgmentTurn: widget.judgmentTurn,
+          wrongAttempts: widget.wrongAttempts,
           evidenceCollectedPercentage: percentage,
         ),
       ),

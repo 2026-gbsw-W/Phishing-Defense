@@ -15,6 +15,7 @@ class ResultScreen extends StatefulWidget {
     required this.scenario,
     required this.judgedCorrectly,
     required this.judgmentTurn,
+    required this.wrongAttempts,
     required this.evidenceCollectedPercentage,
     required this.reportHandledCount,
   });
@@ -22,6 +23,7 @@ class ResultScreen extends StatefulWidget {
   final Scenario scenario;
   final bool judgedCorrectly;
   final int judgmentTurn;
+  final int wrongAttempts;
   final int evidenceCollectedPercentage;
   final int reportHandledCount;
 
@@ -43,6 +45,7 @@ class _ResultScreenState extends State<ResultScreen>
     _score = calculateScore(
       judgedCorrectly: widget.judgedCorrectly,
       judgmentTurn: widget.judgmentTurn,
+      wrongAttempts: widget.wrongAttempts,
       evidenceCollectedPercentage: widget.evidenceCollectedPercentage,
       reportHandledCount: widget.reportHandledCount,
     );
@@ -119,9 +122,11 @@ class _ResultScreenState extends State<ResultScreen>
                     icon: Icons.gavel_rounded,
                     color: widget.judgedCorrectly ? AppColors.safe : AppColors.alarm,
                     content: widget.judgedCorrectly
-                        ? '${widget.judgmentTurn}번째 대화에서 피싱을 정확히 감지하셨습니다!'
-                            '${widget.judgmentTurn <= 2 ? ' 의심 단서를 빠르게 포착하는 능력이 뛰어납니다.' : widget.judgmentTurn <= 4 ? ' 조금 더 빠르게 의심할 수 있다면 더 좋습니다.' : ' 다음엔 조금 더 빠르게 의심해보세요.'}'
-                        : '이번엔 피싱 여부를 잘못 판단하셨습니다. 대화 속 단서를 다시 확인해보세요.',
+                        ? widget.wrongAttempts > 0
+                            ? '한 번 오판했지만 다시 생각해서 정답을 맞히셨습니다. 처음부터 신중하게 판단하는 연습을 더 해보세요.'
+                            : '${widget.judgmentTurn}번째 대화에서 피싱을 정확히 감지하셨습니다!'
+                                '${widget.judgmentTurn <= 2 ? ' 의심 단서를 빠르게 포착하는 능력이 뛰어납니다.' : widget.judgmentTurn <= 4 ? ' 조금 더 빠르게 의심할 수 있다면 더 좋습니다.' : ' 다음엔 조금 더 빠르게 의심해보세요.'}'
+                        : '${widget.wrongAttempts}번의 기회에도 피싱 여부를 잘못 판단하셨습니다. 대화 속 단서를 다시 확인해보세요.',
                   ),
                   const SizedBox(height: 16),
                   _AnalysisSection(

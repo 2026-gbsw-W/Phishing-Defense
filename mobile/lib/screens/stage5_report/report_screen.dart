@@ -10,12 +10,14 @@ class ReportScreen extends StatefulWidget {
     required this.scenario,
     required this.judgedCorrectly,
     required this.judgmentTurn,
+    required this.wrongAttempts,
     required this.evidenceCollectedPercentage,
   });
 
   final Scenario scenario;
   final bool judgedCorrectly;
   final int judgmentTurn;
+  final int wrongAttempts;
   final int evidenceCollectedPercentage;
 
   @override
@@ -58,6 +60,7 @@ class _ReportScreenState extends State<ReportScreen> {
           scenario: widget.scenario,
           judgedCorrectly: widget.judgedCorrectly,
           judgmentTurn: widget.judgmentTurn,
+          wrongAttempts: widget.wrongAttempts,
           evidenceCollectedPercentage: widget.evidenceCollectedPercentage,
           reportHandledCount: reportHandledCount,
         ),

@@ -1,10 +1,10 @@
-import 'dart:async';
 import 'dart:math';
 
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
+import '../../logic/ai_response_engine.dart';
 import '../../models/scenario.dart';
 import '../../theme/app_colors.dart';
 import '../stage3_judge/judge_screen.dart';
@@ -14,22 +14,6 @@ class _ChatMsg {
   final String text;
   final bool isUser;
   final bool isNew;
-}
-
-const _suspicionKeywords = [
-  '사기',
-  '피싱',
-  '보이스피싱',
-  '의심',
-  '수상',
-  '신고',
-  '경찰',
-  '가짜',
-  '거짓말',
-];
-
-bool _isSuspiciousMessage(String text) {
-  return _suspicionKeywords.any((keyword) => text.contains(keyword));
 }
 
 class ChatScreen extends StatefulWidget {
@@ -42,16 +26,18 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final _controller = TextEditingController();
   final _scrollController = ScrollController();
-  final _focusNode = FocusNode();
   final _msgs = <_ChatMsg>[];
   late final FlutterTts _tts;
 
   bool _isAiTyping = false;
-  bool _canProceed = false;
-  int _turnCount = 0;
+  int _turnIndex = 0;
   int _scriptIndex = 0;
+
+  final AiResponseEngine _engine = const ScriptedAiResponseEngine();
+
+  bool get _hasMoreChoices => _turnIndex < widget.scenario.chatChoices.length;
+  bool get _canProceed => _turnIndex >= 2;
 
   @override
   void initState() {
@@ -74,38 +60,32 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollToBottom();
   }
 
-  Future<void> _send() async {
-    final text = _controller.text.trim();
-    if (text.isEmpty || _isAiTyping) return;
-
-    _controller.clear();
-    _focusNode.unfocus();
+  Future<void> _choose(ChatChoice choice) async {
+    if (_isAiTyping || !_hasMoreChoices) return;
 
     setState(() {
-      _msgs.add(_ChatMsg(text: text, isUser: true));
+      _msgs.add(_ChatMsg(text: choice.label, isUser: true));
       _isAiTyping = true;
-      _turnCount++;
     });
     _scrollToBottom();
 
-    await Future.delayed(const Duration(milliseconds: 1200));
-
-    final isSuspicious = _isSuspiciousMessage(text);
-    final responses = widget.scenario.aiResponses;
-    final response = isSuspicious
-        ? widget.scenario.aiSuspicionResponse
-        : _scriptIndex < responses.length
-            ? responses[_scriptIndex]
-            : widget.scenario.aiFallbackResponse;
-    if (!isSuspicious) _scriptIndex++;
+    final delay = Future.delayed(const Duration(milliseconds: 1200));
+    final result = await _engine.respond(
+      scenario: widget.scenario,
+      branch: choice.branch,
+      scriptIndex: _scriptIndex,
+      turnIndex: _turnIndex,
+    );
+    await delay;
+    if (result.consumedScript) _scriptIndex++;
 
     if (mounted) {
       setState(() {
         _isAiTyping = false;
-        _msgs.add(_ChatMsg(text: response, isUser: false, isNew: true));
-        if (_turnCount >= 2) _canProceed = true;
+        _msgs.add(_ChatMsg(text: result.message, isUser: false, isNew: true));
+        _turnIndex++;
       });
-      _tts.speak(response);
+      _tts.speak(result.message);
       _scrollToBottom();
     }
   }
@@ -127,7 +107,7 @@ class _ChatScreenState extends State<ChatScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => JudgeScreen(scenario: widget.scenario, judgmentTurn: _turnCount),
+        builder: (_) => JudgeScreen(scenario: widget.scenario, judgmentTurn: _turnIndex),
       ),
     );
   }
@@ -135,15 +115,15 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void dispose() {
     _tts.stop();
-    _controller.dispose();
     _scrollController.dispose();
-    _focusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final choices =
+        _hasMoreChoices ? widget.scenario.chatChoices[_turnIndex] : const <ChatChoice>[];
 
     return Scaffold(
       appBar: AppBar(
@@ -186,7 +166,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           if (_canProceed)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
               child: GestureDetector(
                 onTap: _proceedToJudge,
                 child: Container(
@@ -212,12 +192,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
               ),
             ),
-          _InputBar(
-            controller: _controller,
-            focusNode: _focusNode,
-            onSend: _send,
-            enabled: !_isAiTyping,
-          ),
+          if (_hasMoreChoices)
+            _ChoiceBar(choices: choices, enabled: !_isAiTyping, onChoose: _choose),
         ],
       ),
     );
@@ -369,18 +345,16 @@ class _TypingIndicatorState extends State<_TypingIndicator>
   }
 }
 
-class _InputBar extends StatelessWidget {
-  const _InputBar({
-    required this.controller,
-    required this.focusNode,
-    required this.onSend,
+class _ChoiceBar extends StatelessWidget {
+  const _ChoiceBar({
+    required this.choices,
     required this.enabled,
+    required this.onChoose,
   });
 
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final VoidCallback onSend;
+  final List<ChatChoice> choices;
   final bool enabled;
+  final void Function(ChatChoice choice) onChoose;
 
   @override
   Widget build(BuildContext context) {
@@ -390,60 +364,54 @@ class _InputBar extends StatelessWidget {
           color: AppColors.surface,
           border: Border(top: BorderSide(color: AppColors.border)),
         ),
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-        child: Row(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: TextField(
-                controller: controller,
-                focusNode: focusNode,
+            for (final choice in choices) ...[
+              _ChoiceButton(
+                label: choice.label,
                 enabled: enabled,
-                maxLines: null,
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => onSend(),
-                decoration: InputDecoration(
-                  hintText: '메시지를 입력하세요...',
-                  hintStyle: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: AppColors.textSecondary),
-                  filled: true,
-                  fillColor: AppColors.background,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: const BorderSide(color: AppColors.border),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: const BorderSide(color: AppColors.border),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: const BorderSide(color: AppColors.amber),
-                  ),
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                ),
+                onTap: () => onChoose(choice),
               ),
-            ),
-            const SizedBox(width: 10),
-            GestureDetector(
-              onTap: enabled ? onSend : null,
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: enabled ? AppColors.amber : AppColors.border,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.send_rounded,
-                  color: enabled ? AppColors.background : AppColors.textSecondary,
-                  size: 20,
-                ),
-              ),
-            ),
+              if (choice != choices.last) const SizedBox(height: 8),
+            ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChoiceButton extends StatelessWidget {
+  const _ChoiceButton({
+    required this.label,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: enabled ? onTap : null,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.textPrimary,
+          side: BorderSide(color: AppColors.border),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+          alignment: Alignment.centerLeft,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
         ),
       ),
     );

@@ -17,12 +17,22 @@ class JudgeScreen extends StatefulWidget {
 class _JudgeScreenState extends State<JudgeScreen> {
   bool? _userJudgment;
   bool _revealed = false;
+  int _wrongAttempts = 0;
+
+  static const _maxWrongAttempts = 2;
 
   void _judge(bool isPhishing) {
     if (_revealed) return;
+
+    final correct = isPhishing == widget.scenario.isPhishing;
     setState(() {
       _userJudgment = isPhishing;
-      _revealed = true;
+      if (correct) {
+        _revealed = true;
+      } else {
+        _wrongAttempts++;
+        if (_wrongAttempts >= _maxWrongAttempts) _revealed = true;
+      }
     });
   }
 
@@ -35,6 +45,7 @@ class _JudgeScreenState extends State<JudgeScreen> {
           scenario: widget.scenario,
           judgedCorrectly: correct,
           judgmentTurn: widget.judgmentTurn,
+          wrongAttempts: _wrongAttempts,
         ),
       ),
     );
@@ -72,6 +83,10 @@ class _JudgeScreenState extends State<JudgeScreen> {
               const SizedBox(height: 32),
               _HintList(hints: widget.scenario.phishingHints, revealed: _revealed),
               const Spacer(),
+              if (!_revealed && _wrongAttempts > 0) ...[
+                _RetryBanner(attemptsLeft: _maxWrongAttempts - _wrongAttempts),
+                const SizedBox(height: 14),
+              ],
               if (!_revealed) ...[
                 _JudgeButton(
                   label: '🚨 피싱입니다',
@@ -95,6 +110,36 @@ class _JudgeScreenState extends State<JudgeScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _RetryBanner extends StatelessWidget {
+  const _RetryBanner({required this.attemptsLeft});
+
+  final int attemptsLeft;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.alarm.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.alarm.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.refresh_rounded, color: AppColors.alarm, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '다시 생각해보세요. 대화 속 단서를 다시 살펴보면 도움이 될 거예요. (남은 기회 $attemptsLeft회)',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.alarm),
+            ),
+          ),
+        ],
       ),
     );
   }

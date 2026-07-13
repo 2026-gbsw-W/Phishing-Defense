@@ -25,8 +25,13 @@ class ScoreBreakdown {
   final int totalXp;
 }
 
-int _judgmentComponentFor({required bool judgedCorrectly, required int judgmentTurn}) {
-  if (!judgedCorrectly) return 15;
+int _judgmentComponentFor({
+  required bool judgedCorrectly,
+  required int judgmentTurn,
+  required int wrongAttempts,
+}) {
+  if (!judgedCorrectly) return wrongAttempts >= 2 ? 10 : 15;
+  if (wrongAttempts > 0) return 15;
   if (judgmentTurn <= 2) return 30;
   if (judgmentTurn <= 4) return 25;
   return 20;
@@ -74,6 +79,7 @@ int _starBonusXpFor(int starRating) {
 ScoreBreakdown calculateScore({
   required bool judgedCorrectly,
   required int judgmentTurn,
+  required int wrongAttempts,
   required int evidenceCollectedPercentage,
   required int reportHandledCount,
 }) {
@@ -81,6 +87,7 @@ ScoreBreakdown calculateScore({
   final judgmentComponent = _judgmentComponentFor(
     judgedCorrectly: judgedCorrectly,
     judgmentTurn: judgmentTurn,
+    wrongAttempts: wrongAttempts,
   );
   final accuracyScore = judgmentComponent + responseQualityScore;
   final evidenceScore = _evidenceScoreFor(evidenceCollectedPercentage);
