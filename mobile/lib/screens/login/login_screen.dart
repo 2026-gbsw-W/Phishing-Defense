@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../services/auth_api.dart';
+import '../../services/session_store.dart';
 import '../../theme/app_colors.dart';
 import '../scenario_selection/scenario_selection_screen.dart';
 
@@ -15,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
+  bool _submitting = false;
   String? _errorText;
 
   @override
@@ -24,7 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
@@ -33,11 +36,26 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    setState(() => _errorText = null);
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const ScenarioSelectionScreen()),
-    );
+    setState(() {
+      _errorText = null;
+      _submitting = true;
+    });
+
+    try {
+      final session = await AuthApi.login(email: email, password: password);
+      await SessionStore.save(session);
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const ScenarioSelectionScreen()),
+      );
+    } on AuthException catch (e) {
+      setState(() => _errorText = e.message);
+    } catch (_) {
+      setState(() => _errorText = '서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
@@ -116,8 +134,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _submit,
-                      child: const Text('로그인'),
+                      onPressed: _submitting ? null : _submit,
+                      child: _submitting
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.onAlarm,
+                              ),
+                            )
+                          : const Text('로그인'),
                     ),
                   ),
                 ],
