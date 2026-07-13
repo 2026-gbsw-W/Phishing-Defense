@@ -41,3 +41,9 @@ ai/.venv/
 ai/venv/
 ai/*.egg-info/
 ai/.pytest_cache/
+
+# ==== 임시 오디오 파일 ====
+ai/app/*.mp3
+ai/app/*.wav
+ai/app/*.aiff
+mobile/flutter_01.png

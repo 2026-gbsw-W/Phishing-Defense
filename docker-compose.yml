@@ -1,0 +1,57 @@
+services:
+
+  # ── MySQL ────────────────────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: phishing-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_DATABASE: phishing_defense
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ── Backend (Spring Boot) ────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: phishing-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/phishing_defense?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+      DB_USERNAME: root
+      DB_PASSWORD: ""
+      JWT_SECRET: ${JWT_SECRET:-phishing-defense-secret-key-must-be-at-least-32-bytes-long!!}
+      AI_SERVER_BASE_URL: http://ai:8000
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # ── AI Server (FastAPI) ──────────────────────────────────────────────────────
+  ai:
+    build:
+      context: ./ai
+      dockerfile: Dockerfile
+    container_name: phishing-ai
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
+      MOCK_TTS: ${MOCK_TTS:-True}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Ollama가 로컬 맥에서 실행되는 경우
+
+volumes:
+  mysql_data:
