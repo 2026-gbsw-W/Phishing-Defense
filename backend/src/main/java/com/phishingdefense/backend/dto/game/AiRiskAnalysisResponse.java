@@ -1,10 +1,10 @@
-package com.phishingdefense.backend.dto.training;
+package com.phishingdefense.backend.dto.game;
 
 import com.phishingdefense.backend.entity.TrainingResult;
 import java.util.List;
 
-public record TrainingResultResponse(
-        String sessionId,
+public record AiRiskAnalysisResponse(
+        Integer riskScore,
         Boolean personalInfoRequested,
         Boolean accountNumberRequested,
         Boolean moneyRequested,
@@ -12,16 +12,15 @@ public record TrainingResultResponse(
         Boolean authorityImpersonation,
         Boolean suspiciousLink,
         Boolean userFellForIt,
-        Integer riskScore,
         List<String> dangerousMessages,
         String evidenceFeedback,
         String goodPoints,
         String mistakes,
         String improvementTips
 ) {
-    public static TrainingResultResponse from(TrainingResult result) {
-        return new TrainingResultResponse(
-                result.getSessionId(),
+    public static AiRiskAnalysisResponse from(TrainingResult result) {
+        return new AiRiskAnalysisResponse(
+                result.getRiskScore(),
                 result.getPersonalInfoRequested(),
                 result.getAccountNumberRequested(),
                 result.getMoneyRequested(),
@@ -29,7 +28,6 @@ public record TrainingResultResponse(
                 result.getAuthorityImpersonation(),
                 result.getSuspiciousLink(),
                 result.getUserFellForIt(),
-                result.getRiskScore(),
                 result.getDangerousMessages(),
                 result.getEvidenceFeedback(),
                 result.getGoodPoints(),

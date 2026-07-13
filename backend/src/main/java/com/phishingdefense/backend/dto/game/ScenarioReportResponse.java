@@ -8,6 +8,7 @@ public record ScenarioReportResponse(
         Integer xpEarned,
         String detailedFeedback,
         EvidenceAnalysisResponse evidenceAnalysis,
-        List<String> recommendations
+        List<String> recommendations,
+        AiRiskAnalysisResponse aiAnalysis
 ) {
 }
