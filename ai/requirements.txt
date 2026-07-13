@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+pydantic
+python-multipart
+langchain
+langchain-core
+langchain-openai
+openai
+elevenlabs
+python-dotenv
+httpx
+requests
+sqlalchemy
+aiosqlite
+pandas
+numpy
