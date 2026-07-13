@@ -13,8 +13,7 @@ import uuid
 import json
 from urllib.parse import quote
 from fastapi.middleware.cors import CORSMiddleware
-
-
+from datetime import datetime
 
 
 app = FastAPI()
@@ -34,6 +33,9 @@ llm = ChatOllama(
 
 # 세션ID -> 메시지 리스트 (서버 재시작하면 초기화됨, DB 저장은 나중에)
 session_histories: dict[str, list] = {}
+session_reports: dict[str, dict] = {}
+
+
 
 
 class ChatRequest(BaseModel):
@@ -69,6 +71,8 @@ def chat(req: ChatRequest):
         session_histories[session_id] = [SystemMessage(content=system_prompt)]
 
     history = session_histories[session_id]
+    # 세션ID -> 메시지 리스트
+
     history.append(HumanMessage(content=req.message))
 
     response = llm.invoke(history)
@@ -113,29 +117,68 @@ def format_conversation(history: list) -> str:
 
 @app.post("/chat/end")
 def end_chat(req: EndChatRequest):
+
     if req.session_id not in session_histories:
-        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다.")
+        raise HTTPException(
+            status_code=404,
+            detail="세션을 찾을 수 없습니다."
+        )
 
     history = session_histories[req.session_id]
-    conversation_text = format_conversation(history)
-    prompt = ANALYSIS_PROMPT_TEMPLATE.format(conversation=conversation_text)
 
-    response = llm.invoke([HumanMessage(content=prompt)])
+    conversation_text = format_conversation(history)
+
+    prompt = ANALYSIS_PROMPT_TEMPLATE.format(
+        conversation=conversation_text
+    )
+
+    response = llm.invoke(
+        [HumanMessage(content=prompt)]
+    )
+
     raw = response.content.strip()
 
-    # 모델이 ```json ... ``` 코드블럭으로 감싸서 답하는 경우가 있어 제거
+
     if raw.startswith("```"):
-        raw = raw.strip("`").replace("json\n", "", 1).strip()
+        raw = raw.strip("`").replace(
+            "json\n",
+            "",
+            1
+        ).strip()
 
     try:
         result = json.loads(raw)
+
     except json.JSONDecodeError:
         raise HTTPException(
             status_code=500,
-            detail=f"분석 결과 파싱 실패, 모델 원본 응답: {raw}"
+            detail=f"분석 결과 파싱 실패: {raw}"
         )
 
-    return result
+
+    result["created_at"] = datetime.now().isoformat()
+
+    session_reports[req.session_id] = result
+
+
+    return {
+        "session_id": req.session_id,
+        "report": result
+    }
+
+@app.get("/report/{session_id}")
+def get_report(session_id: str):
+
+    if session_id not in session_reports:
+        raise HTTPException(
+            status_code=404,
+            detail="생성된 리포트가 없습니다."
+        )
+
+    return {
+        "session_id": session_id,
+        "report": session_reports[session_id]
+    }
 
 @app.post("/voice-chat")
 def voice_chat(
