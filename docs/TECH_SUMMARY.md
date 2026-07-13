@@ -202,13 +202,6 @@ GET    /api/v1/users/me/achievements        업적 조회
 GET    /api/v1/users/me/inventory           인벤토리
 ```
 
-### Leaderboard API
-```
-GET    /api/v1/leaderboard                  전체 리더보드
-GET    /api/v1/leaderboard?scope=friends    친구 리더보드
-GET    /api/v1/leaderboard/category         카테고리별 리더보드
-```
-
 ### Mission API
 ```
 GET    /api/v1/missions/daily               일일 미션 조회
@@ -317,7 +310,6 @@ REACT_APP_API_URL=http://localhost:8080
 2. React Query 캐싱
 3. Zustand 상태 정규화
 4. 이미지 최적화 (WebP)
-5. 무한 스크롤 (리더보드)
 
 // Backend 최적화
 1. JPA N+1 문제 (eager loading)
