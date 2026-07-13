@@ -145,10 +145,13 @@ chat_history (채팅 기록)
 evidence (증거)
 ├─ evidence_id (PK)
 ├─ record_id (FK)
-├─ evidence_type (phone, account, url, etc)
-├─ evidence_value
-├─ importance_level
-└─ is_user_selected
+├─ evidence_type (사용자 저장 시 자동 분류: phone, account, url, etc)
+├─ evidence_value (사용자가 지목한 원문/메모)
+├─ message_turn (대화 중 저장한 턴)
+├─ is_submitted_at_report (Stage 5 신고 시 제출 여부)
+├─ is_valid_evidence (Stage 6 AI 최종 판정)
+├─ validity_reason (AI 판정 근거)
+└─ importance_level
 
 achievements (업적)
 ├─ achievement_id (PK)
@@ -184,10 +187,11 @@ GET    /api/v1/scenarios/{id}/status        게임 상태 조회
 POST   /api/v1/chat/{record_id}/send        채팅 메시지 전송
 GET    /api/v1/chat/{record_id}/history     채팅 히스토리 조회
 POST   /api/v1/chat/{record_id}/hint        힌트 요청
+POST   /api/v1/chat/{record_id}/evidence/mark   증거 저장(대화 중, 사용자가 직접 지목)
 
 POST   /api/v1/scenarios/{id}/judgment      피싱 판단
-GET    /api/v1/scenarios/{id}/evidence      증거 조회
-POST   /api/v1/scenarios/{id}/evidence/confirm  증거 확인
+GET    /api/v1/scenarios/{id}/evidence      증거 조회 (사용자가 저장한 전체 목록)
+POST   /api/v1/scenarios/{id}/evidence/submit   증거 제출(Stage 5 신고 시 선택 제출)
 
 GET    /api/v1/scenarios/{id}/report        결과 리포트
 POST   /api/v1/scenarios/{id}/report/claim  XP 청구
@@ -241,13 +245,14 @@ POST   /api/v1/attendance/check-in          출석 체크인
 
 역할:
 - 피싱 신고를 정중하게 접수
-- 필요한 증거 정보 확인
+- 사용자가 제출하는 증거 검토(최종 유효 판정은 하지 않음, 부족하면 추가 제출 요청)
 - 대응 절차 안내
 - 조사 진행
 
 사용자 메시지: {user_message}
 전문적으로 대응하세요.
 ```
+※ 최종 증거 유효 판정("증거 맞음"/"증거 아님")은 이 대화가 아닌 Stage 6 리포트 생성 단계에서 수행.
 
 ### 리포트 생성
 ```
@@ -255,13 +260,13 @@ POST   /api/v1/attendance/check-in          출석 체크인
 
 사용자 정보:
 - 정확도: {accuracy}%
-- 증거 수집: {evidence_percentage}%
+- 제출 증거: {submitted_evidence} (정답: {ground_truth_evidence})
 - 대응 능력: {ability}
 - 신고 품질: {report_quality}
 
 생성할 내용:
 1. 대응 능력 평가
-2. 증거 분석 (수집한 것, 놓친 것)
+2. 증거 판정 (제출한 항목별 유효/무효 + 근거, 놓친 증거)
 3. 신고 대처 평가
 4. 교육적 피드백
 5. 취약점 분석
