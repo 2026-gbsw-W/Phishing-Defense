@@ -14,7 +14,7 @@
 |------|------|--------|--------|------|
 | **AI 채팅 엔진** | ✅ | 낮음 | 매우높음 | OpenAI API로 5시간 |
 | **게임 시스템** | ✅ | 낮음 | 매우높음 | 기본 DB 쿼리 + 계산 |
-| **증거 자동 추출** | ✅ | 중간 | 높음 | 정규식 + 키워드 (NER은 Phase 2) |
+| **증거 저장 & 판정** | ✅ | 중간 | 높음 | 사용자 직접 지목·저장 + LLM 유효성 판정 (카테고리 자동 태깅은 정규식/키워드, NER은 Phase 2 선택) |
 | **동적 리포트** | ✅ | 중간 | 높음 | LLM 프롬프트 엔지니어링 |
 | **신고 프로세스** | ✅ | 낮음 | 높음 | Stage 2와 동일한 AI 호출 |
 | **STT/TTS** | ⚠️ | 높음 | 중간 | Phase 2 이후 (선택) |
@@ -38,7 +38,7 @@
 #### Tier 2: 중간 (2-5일)
 ```
 ✅ AI 채팅 (OpenAI API 통합)
-✅ 증거 자동 추출 (정규식)
+✅ 증거 저장 & 유효성 판정 (사용자 지목 저장 + LLM 판정)
 ✅ 신고 프로세스 (2 NPC 채팅)
 ✅ 동적 리포트 생성
 ✅ 일일 미션 (동적)
@@ -49,7 +49,7 @@
 ```
 ✅ 전체 게임플레이 플로우 (6 Stage)
 ✅ 채팅 컨텍스트 관리
-✅ 증거 NER (선택, Phase 2)
+✅ 증거 카테고리 자동 태깅 NER 고도화 (선택, Phase 2)
 ✅ 음성 기능 STT/TTS (Phase 2)
 ```
 
@@ -71,7 +71,7 @@ Backend (Spring Boot)
 ├─ 인증 (JWT): 4시간
 ├─ 게임플레이 API: 20시간
 ├─ AI 통합 (ChatGPT): 8시간
-├─ 증거 추출 로직: 6시간
+├─ 증거 저장 & 판정 로직: 6시간
 ├─ 리포트 생성: 6시간
 └─ 테스트 & 배포: 8시간
 총: 52시간 (~6-7일, 1명)
@@ -209,7 +209,7 @@ QA & 테스트: 16시간 (~2일, 1명)
 
 #### 선택사항 (NLP, Phase 2)
 ```xml
-<!-- NER을 위한 라이브러리 (증거 자동 추출 고도화) -->
+<!-- NER을 위한 라이브러리 (사용자가 저장한 증거의 카테고리 자동 태깅 고도화용, 증거 채택 여부 판단에는 사용하지 않음) -->
 <dependency>
   <groupId>edu.stanford.nlp</groupId>
   <artifactId>stanford-corenlp</artifactId>
@@ -524,8 +524,9 @@ CREATE TABLE scenario_records (
   
   -- 증거 수집
   hints_used INT DEFAULT 0,
-  evidence_collected_count INT,
-  evidence_collected_percentage INT DEFAULT 0 COMMENT '0-100',
+  evidence_marked_count INT COMMENT '대화 중 사용자가 저장한 증거 수',
+  evidence_submitted_count INT COMMENT '신고 시 제출한 증거 수',
+  evidence_valid_count INT COMMENT '제출 증거 중 AI가 유효로 판정한 수',
   
   -- 평가
   star_rating INT DEFAULT 0 COMMENT '0-3',
@@ -570,9 +571,6 @@ CREATE TABLE chat_history (
   model_version VARCHAR(50),
   tokens_used INT,
   
-  -- 추출된 정보
-  extracted_entities JSON,
-  
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   
   KEY idx_record (record_id),
@@ -580,20 +578,19 @@ CREATE TABLE chat_history (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
--- 7. Evidence 테이블
+-- 7. Evidence 테이블 (사용자가 대화 중 직접 지목·저장한 증거)
 CREATE TABLE evidence (
   evidence_id BIGINT PRIMARY KEY AUTO_INCREMENT,
   record_id BIGINT NOT NULL,
   
-  evidence_type VARCHAR(50) COMMENT 'phone, account, url, impersonation, amount, tone, etc',
-  evidence_value VARCHAR(255),
+  evidence_type VARCHAR(50) COMMENT 'phone, account, url, impersonation, amount, tone, etc (사용자 저장 시 자동 분류)',
+  evidence_value VARCHAR(255) COMMENT '사용자가 지목한 원문/메모',
+  message_turn INT COMMENT '대화 중 몇 번째 턴에서 저장했는지',
   
-  is_correctly_identified BOOLEAN,
-  is_user_selected BOOLEAN COMMENT '사용자가 선택했는가',
-  
-  source VARCHAR(50) COMMENT 'auto_extracted, user_selected, ai_mentioned',
-  importance_level INT DEFAULT 1 COMMENT '1-5',
-  importance_weight INT DEFAULT 1,
+  is_submitted_at_report BOOLEAN DEFAULT FALSE COMMENT 'Stage 5 신고 시 제출했는지',
+  is_valid_evidence BOOLEAN COMMENT 'Stage 6에서 AI가 내린 최종 판정 (증거 맞음/아님)',
+  validity_reason VARCHAR(255) COMMENT 'AI가 설명하는 판정 근거',
+  importance_level INT DEFAULT 1 COMMENT '1-5, 유효 판정된 경우에만 의미 있음',
   
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   
@@ -787,10 +784,19 @@ POST /api/v1/chat/{record_id}/send
 └─ 응답: {
     ai_response: "지금 급할 일이...",
     turn: 1,
-    extracted_evidence: [
-      { type: "urgency", value: "급함 표현" }
-    ],
     hints_remaining: 3
+  }
+└─ 상태코드: 201
+
+POST /api/v1/chat/{record_id}/evidence/mark
+└─ 요청: {
+    turn: 1,
+    evidence_value: "지금 바로 송금하세요" // 사용자가 메시지를 길게 눌러 "증거로 저장" 선택
+  }
+└─ 응답: {
+    evidence_id: 7,
+    evidence_type_guess: "urgency", // 패턴/키워드로 카테고리만 자동 태깅, 채택 여부 판단 아님
+    saved: true
   }
 └─ 상태코드: 201
 
@@ -842,26 +848,22 @@ GET /api/v1/scenarios/{record_id}/evidence
       evidence_id: 1,
       type: "urgency",
       value: "급함 표현",
-      importance_level: 2,
-      is_auto_extracted: true,
-      is_user_selected: false
+      turn: 3
     }
-  ]
+  ] // 사용자가 대화 중 직접 지목·저장한 전체 증거 목록 (Stage 4 "증거 정리" 화면에서 조회)
 
-POST /api/v1/scenarios/{record_id}/evidence/confirm
+POST /api/v1/scenarios/{record_id}/evidence/submit
 └─ 요청: {
-    selected_evidence_ids: [1, 3, 5],
-    stage: 4
+    evidence_ids: [1, 3, 5], // Stage 5 신고 시 "제출할 증거 선택" → "선택한 증거 제시"
+    stage: 5
   }
 └─ 응답: {
-    evidence_collection_percentage: 85,
-    missed_evidence: [
-      { type: "account_number", importance: 5 }
-    ],
-    tips: "계좌번호는 매우 중요한 증거입니다"
+    submitted_count: 3
   }
 └─ 상태코드: 200
 ```
+
+※ 유효성 판정(증거 맞음/아님)은 이 단계에서 하지 않고 Stage 6 리포트 생성 시 AI가 최종 판정합니다.
 
 #### Report
 
@@ -875,11 +877,15 @@ GET /api/v1/scenarios/{record_id}/report
       judgment_turn: 2
     },
     evidence_analysis: {
-      collection_percentage: 85,
-      collected_count: 5,
-      total_possible: 6,
-      missed: [
-        { type: "account_number", importance: 5 }
+      submitted_count: 4,
+      valid_count: 3,
+      accuracy_percentage: 75, // 증거 판별 정확도 = valid_count / submitted_count
+      verdicts: [
+        { evidence_id: 1, value: "010-XXXX-5678", is_valid: true, reason: "발신자 추적의 핵심 근거입니다" },
+        { evidence_id: 2, value: "말투가 어색함", is_valid: false, reason: "주관적 정황일 뿐 단독 증거로 보기 어렵습니다" }
+      ],
+      missed_evidence: [
+        { type: "account_number", importance: 5 } // 정답 증거 중 제출하지 않은 항목
       ]
     },
     report_handling: {
@@ -900,7 +906,7 @@ GET /api/v1/scenarios/{record_id}/report
       base: 150,
       star_bonus: 70,
       hints_bonus: 20,
-      evidence_bonus: 35,
+      evidence_bonus: 35, // 제출 증거 유효 비율 기반 (100% 유효 시 +40XP)
       report_bonus: 50,
       total: 325
     }
@@ -1071,8 +1077,19 @@ POST /api/v1/ai/chat-response
     context: { stage: 2, turn: 1, ... }
   }
 └─ 응답: {
-    ai_message: "지금 급할 일이...",
-    extracted_entities: [...]
+    ai_message: "지금 급할 일이..."
+  }
+
+POST /api/v1/ai/evidence-tag (사용자가 "증거로 저장"한 텍스트의 카테고리만 자동 태깅, 채택 여부 판단 아님)
+└─ 요청: { record_id: 12345, turn: 1, evidence_value: "지금 바로 송금하세요" }
+└─ 응답: { evidence_type_guess: "urgency" }
+
+POST /api/v1/ai/validate-evidence (Stage 6 리포트 생성 시 제출 증거의 유효성 판정)
+└─ 요청: { record_id: 12345, submitted_evidence: [...], ground_truth_evidence: [...] }
+└─ 응답: {
+    verdicts: [
+      { evidence_id: 1, is_valid: true, reason: "..." }
+    ]
   }
 
 POST /api/v1/ai/generate-report
@@ -1080,7 +1097,7 @@ POST /api/v1/ai/generate-report
 └─ 응답: {
     report: {
       accuracy_evaluation: "...",
-      evidence_analysis: {...},
+      evidence_analysis: {...}, // submitted_count, valid_count, verdicts[], missed_evidence
       ...
     }
   }
@@ -1111,9 +1128,9 @@ src/
 │  │  ├─ Stage1_SMS.tsx (초기 메시지)
 │  │  ├─ Stage2_Chat.tsx (AI 채팅)
 │  │  ├─ Stage3_Judgment.tsx (피싱 판단)
-│  │  ├─ Stage4_Evidence.tsx (증거 수집)
-│  │  ├─ Stage5_Report.tsx (신고 대화)
-│  │  └─ Stage6_Result.tsx (결과 리포트)
+│  │  ├─ Stage4_Evidence.tsx (증거 정리 - 사용자가 직접 저장한 증거 목록 확인)
+│  │  ├─ Stage5_Report.tsx (신고 대화 - 제출할 증거 선택 후 제시)
+│  │  └─ Stage6_Result.tsx (결과 리포트 - 제출 증거 항목별 유효성 판정 표시)
 │  │
 │  ├─ dashboard/
 │  │  ├─ Dashboard.tsx
@@ -1196,7 +1213,7 @@ src/main/java/com/phishing_defense/
 │  ├─ AuthService.java
 │  ├─ GameService.java
 │  ├─ ChatGPTService.java
-│  ├─ EvidenceExtractionService.java
+│  ├─ EvidenceValidationService.java
 │  ├─ ReportGenerationService.java
 │  ├─ UserService.java
 │  ├─ MissionService.java
@@ -1236,7 +1253,7 @@ src/main/java/com/phishing_defense/
 │  │  ├─ ScenarioStartRequest.java
 │  │  ├─ ChatSendRequest.java
 │  │  ├─ JudgmentRequest.java
-│  │  └─ EvidenceConfirmRequest.java
+│  │  └─ EvidenceSubmitRequest.java
 │  │
 │  ├─ user/
 │  │  ├─ UserProfile.java
@@ -1265,7 +1282,7 @@ src/main/java/com/phishing_defense/
 │  └─ ErrorCode.java
 │
 ├─ util/
-│  ├─ EvidenceExtractor.java
+│  ├─ EvidenceValidator.java
 │  ├─ XPCalculator.java
 │  ├─ ScoreCalculator.java
 │  └─ DateUtil.java
@@ -1437,7 +1454,7 @@ Day 8-10:
   └─ 채팅 API
 
 Day 11-12:
-  ├─ 증거 자동 추출
+  ├─ 증거 저장 & 제출 기능 (사용자 지목 저장, 유효성 판정)
   ├─ 신고 2개 NPC AI
   └─ 리포트 생성
 
@@ -1459,7 +1476,7 @@ Day 13-14:
 - [ ] AI 응답 자연스러움 (3회 이상 테스트)
 - [ ] 별 평가 계산 100% 정확성
 - [ ] XP 획득 정상 작동
-- [ ] 증거 추출 >80% 정확도
+- [ ] 증거 유효성 판정 >80% 정확도
 - [ ] 모바일 UI (iOS Safari, Android Chrome) 작동
 - [ ] 데이터 저장 & 조회 확인
 - [ ] API 응답 속도 <1초
