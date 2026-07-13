@@ -135,4 +135,18 @@ public class ScenarioRecord {
     public void useHint() {
         this.hintsUsed = (this.hintsUsed == null ? 0 : this.hintsUsed) + 1;
     }
+
+    public int recordJudgment(boolean isCorrect) {
+        this.correctJudgment = isCorrect;
+        this.judgmentAtTurn = this.currentTurn;
+        if (isCorrect) {
+            this.currentStage = Math.min((this.currentStage == null ? FIRST_STAGE : this.currentStage) + 1, LAST_STAGE);
+        }
+        return this.currentStage;
+    }
+
+    public void recordEvidenceSubmission(int markedCount, int submittedCount) {
+        this.evidenceMarkedCount = markedCount;
+        this.evidenceSubmittedCount = submittedCount;
+    }
 }
