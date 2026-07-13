@@ -746,3 +746,124 @@ h2 {
   outline: none;
   border-color: rgba(41, 199, 132, 0.5);
 }
+
+/* ---- Stage6_Result component ---- */
+.stage6-result-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-top: 16px;
+  padding-bottom: 8px;
+}
+.stage6-result-empty {
+  color: var(--text-dim);
+  font-size: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 14px 16px;
+}
+.stage6-result-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+.stage6-result-stars {
+  font-size: 32px;
+  color: var(--amber);
+  letter-spacing: 4px;
+}
+.stage6-result-score {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+.stage6-result-feedback {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 14px 16px;
+}
+.stage6-result-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.stage6-result-section-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+.stage6-result-verdict-list,
+.stage6-result-missed-list,
+.stage6-result-recommendation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+}
+.stage6-result-verdict-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 12px 14px;
+}
+.stage6-result-verdict-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+}
+.stage6-result-verdict-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stage6-result-verdict-value {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+.stage6-result-verdict-reason {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.stage6-result-missed-item {
+  font-size: 13px;
+  color: var(--text-dim);
+  background: var(--alarm-dim);
+  border: 1px solid rgba(255, 69, 63, 0.25);
+  border-radius: 4px;
+  padding: 10px 12px;
+}
+.stage6-result-recommendation-item {
+  font-size: 13px;
+  color: var(--text-dim);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 10px 12px;
+}
+.stage6-result-claim-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+.stage6-result-claim-xp {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--safe);
+}
+.stage6-result-claim-levelup {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--amber);
+}
