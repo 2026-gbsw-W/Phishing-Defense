@@ -12,6 +12,7 @@ import com.phishingdefense.backend.dto.game.ChatVoiceResponse;
 import com.phishingdefense.backend.dto.training.AiChatEndResponse;
 import com.phishingdefense.backend.dto.training.AiChatMessageResponse;
 import com.phishingdefense.backend.dto.training.AiEvidenceResponse;
+import com.phishingdefense.backend.dto.training.AiHintResponse;
 import com.phishingdefense.backend.dto.training.AiReportPayload;
 import com.phishingdefense.backend.dto.training.TrainingResultResponse;
 import com.phishingdefense.backend.dto.training.VoiceChatResult;
@@ -54,7 +55,6 @@ import org.springframework.web.multipart.MultipartFile;
 public class ChatService {
 
     private static final String AI_MODEL_NAME = "ai-server";
-    private static final String MOCK_HINT_TEXT = "(임시 힌트) 발신자 정보와 링크의 출처를 다시 한번 확인해보세요.";
 
     private final ScenarioRecordRepository scenarioRecordRepository;
     private final ChatHistoryRepository chatHistoryRepository;
@@ -195,10 +195,15 @@ public class ChatService {
             throw new InsufficientHintsException();
         }
 
+        TrainingSession session = trainingSessionRepository.findByRecordId(recordId)
+                .orElseThrow(() -> new TrainingSessionNotFoundException("record:" + recordId));
+
+        AiHintResponse response = aiClient.getHint(session.getSessionId());
+
         user.decrementHints();
         record.useHint();
 
-        return new ChatHintResponse(MOCK_HINT_TEXT, user.getHints());
+        return new ChatHintResponse(response.hint(), user.getHints());
     }
 
     private ScenarioRecord getOwnedRecordOrThrow(Long userId, Long recordId) {
