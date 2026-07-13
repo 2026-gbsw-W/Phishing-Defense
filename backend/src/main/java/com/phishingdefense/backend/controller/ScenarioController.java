@@ -5,6 +5,8 @@ import com.phishingdefense.backend.dto.game.EvidenceConfirmResponse;
 import com.phishingdefense.backend.dto.game.EvidenceItemResponse;
 import com.phishingdefense.backend.dto.game.JudgmentRequest;
 import com.phishingdefense.backend.dto.game.JudgmentResponse;
+import com.phishingdefense.backend.dto.game.ReportClaimResponse;
+import com.phishingdefense.backend.dto.game.ScenarioReportResponse;
 import com.phishingdefense.backend.dto.game.ScenarioStartResponse;
 import com.phishingdefense.backend.dto.game.ScenarioStatusResponse;
 import com.phishingdefense.backend.security.UserPrincipal;
@@ -70,5 +72,21 @@ public class ScenarioController {
             @Valid @RequestBody EvidenceConfirmRequest request
     ) {
         return ResponseEntity.ok(scenarioPlayService.confirmEvidence(principal.getUserId(), recordId, request));
+    }
+
+    @GetMapping("/{recordId}/report")
+    public ResponseEntity<ScenarioReportResponse> getReport(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long recordId
+    ) {
+        return ResponseEntity.ok(scenarioPlayService.getReport(principal.getUserId(), recordId));
+    }
+
+    @PostMapping("/{recordId}/report/claim")
+    public ResponseEntity<ReportClaimResponse> claimReport(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long recordId
+    ) {
+        return ResponseEntity.ok(scenarioPlayService.claimReport(principal.getUserId(), recordId));
     }
 }

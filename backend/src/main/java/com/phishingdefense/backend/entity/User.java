@@ -18,6 +18,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
 
+    private static final int XP_PER_LEVEL = 5000;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
@@ -118,6 +120,7 @@ public class User {
     public void addXp(int amount) {
         this.currentXp = (this.currentXp == null ? 0 : this.currentXp) + amount;
         this.totalXp = (this.totalXp == null ? 0 : this.totalXp) + amount;
+        this.level = (this.totalXp / XP_PER_LEVEL) + 1;
     }
 
     public boolean hasHints() {
