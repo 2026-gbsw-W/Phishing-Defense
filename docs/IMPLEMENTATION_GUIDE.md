@@ -32,7 +32,6 @@
 ✅ 레벨 & XP 시스템
 ✅ 별 평가 계산
 ✅ 업적 시스템
-✅ 출석 시스템
 ```
 
 #### Tier 2: 중간 (2-5일)
@@ -41,7 +40,6 @@
 ✅ 증거 저장 & 유효성 판정 (사용자 지목 저장 + LLM 판정)
 ✅ 신고 프로세스 (2 NPC 채팅)
 ✅ 동적 리포트 생성
-✅ 일일 미션 (동적)
 ✅ 맞춤형 훈련 로직
 ```
 
@@ -408,11 +406,11 @@ def transcribe_audio(audio_file):
 └────────┬────────┘
          │ 1:N
          │
-    ┌────▼──────────────────┬──────────────────┬─────────────┐
-    │                       │                  │             │
-┌───▼──────────┐  ┌────────▼────────┐  ┌─────▼─────┐  ┌───▼─────┐
-│ChapterProgress│  │ScenarioRecords  │  │Achievements│ │Missions│
-└──────────────┘  └────────┬────────┘  └───────────┘  └────────┘
+    ┌────▼──────────────────┬──────────────────┐
+    │                       │                  │
+┌───▼──────────┐  ┌────────▼────────┐  ┌─────▼─────┐
+│ChapterProgress│  │ScenarioRecords  │  │Achievements│
+└──────────────┘  └────────┬────────┘  └───────────┘
                            │ 1:N
                            │
                     ┌──────▼──────┐
@@ -535,7 +533,6 @@ CREATE TABLE scenario_records (
   evidence_score INT,
   report_handling_score INT,
   hint_penalty INT,
-  time_bonus INT,
   
   -- 시간
   played_at TIMESTAMP,
@@ -631,42 +628,6 @@ CREATE TABLE user_achievements (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
--- 10. DailyMissions 테이블
-CREATE TABLE daily_missions (
-  mission_id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  user_id BIGINT NOT NULL,
-  
-  mission_type VARCHAR(50) COMMENT 'fixed, dynamic, bonus',
-  description VARCHAR(255),
-  recommendation_reason VARCHAR(255),
-  
-  is_completed BOOLEAN DEFAULT FALSE,
-  completed_at TIMESTAMP,
-  
-  reward_xp INT DEFAULT 0,
-  
-  created_date DATE,
-  
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  
-  KEY idx_user_date (user_id, created_date),
-  FOREIGN KEY (user_id) REFERENCES users(user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-
--- 11. Attendance 테이블
-CREATE TABLE attendance (
-  attendance_id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  user_id BIGINT NOT NULL,
-  
-  checked_in_date DATE NOT NULL,
-  consecutive_days INT DEFAULT 1,
-  
-  UNIQUE KEY unique_user_date (user_id, checked_in_date),
-  KEY idx_user (user_id),
-  FOREIGN KEY (user_id) REFERENCES users(user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 ```
 
 ### 4.3 인덱스 전략
@@ -681,9 +642,6 @@ CREATE INDEX idx_chat_history_record_turn
 
 CREATE INDEX idx_evidence_record_type 
   ON evidence(record_id, evidence_type);
-
-CREATE INDEX idx_daily_missions_user_date_completed 
-  ON daily_missions(user_id, created_date, is_completed);
 
 ```
 
@@ -897,8 +855,7 @@ GET /api/v1/scenarios/{record_id}/report
       evidence: 17,
       report: 18,
       hints: 10,
-      time: 10,
-      total: 85
+      total: 75
     },
     star_rating: 3,
     educational_feedback: "...",
@@ -938,8 +895,6 @@ GET /api/v1/users/me
 │   total_xp: 12340,
 │   coins: 500,
 │   hints: 3,
-│   rank: 234,
-│   total_users: 15000,
 │   statistics: {
 │     total_plays: 45,
 │     average_star: 2.4,
@@ -1000,61 +955,7 @@ GET /api/v1/users/me/inventory
   }
 ```
 
-### 5.4 Mission API
-
-```
-GET /api/v1/missions/daily
-└─ 응답: [
-    {
-      mission_id: 1,
-      type: "fixed",
-      description: "일일 1스테이지 클리어",
-      progress: { completed: 0, required: 1 },
-      reward_xp: 100,
-      is_completed: false
-    },
-    {
-      mission_id: 2,
-      type: "dynamic",
-      description: "금융사기 도전!",
-      recommendation_reason: "당신은 금융 유형에 약해요",
-      reward_xp: 150,
-      is_completed: true
-    }
-  ]
-
-POST /api/v1/missions/{mission_id}/complete
-└─ 요청: { record_id: 12345 }
-└─ 응답: {
-    success: true,
-    reward_xp: 150,
-    new_total_xp: 2710
-  }
-
-GET /api/v1/attendance
-└─ 응답: {
-    consecutive_days: 7,
-    today_checked_in: true,
-    next_milestone: {
-      day: 14,
-      reward: "double_xp_boost_1day"
-    },
-    calendar: [
-      { date: "2024-07-13", checked_in: true },
-      { date: "2024-07-12", checked_in: true },
-      ...
-    ]
-  }
-
-POST /api/v1/attendance/check-in
-└─ 요청: {}
-└─ 응답: {
-    consecutive_days: 7,
-    reward_earned: false
-  }
-```
-
-### 5.6 Internal API (Backend only)
+### 5.5 Internal API (Backend only)
 
 ```
 POST /api/v1/ai/generate-scenario
@@ -1143,10 +1044,6 @@ src/
 │  │  ├─ Statistics.tsx
 │  │  └─ AchievementsList.tsx
 │  │
-│  ├─ missions/
-│  │  ├─ DailyMissions.tsx
-│  │  └─ AttendanceCalendar.tsx
-│  │
 │  └─ common/
 │     ├─ Header.tsx
 │     ├─ Navigation.tsx
@@ -1206,7 +1103,6 @@ src/main/java/com/phishing_defense/
 │  ├─ GameController.java
 │  ├─ ChatController.java
 │  ├─ UserController.java
-│  ├─ MissionController.java
 │  └─ AchievementController.java
 │
 ├─ service/
@@ -1216,7 +1112,6 @@ src/main/java/com/phishing_defense/
 │  ├─ EvidenceValidationService.java
 │  ├─ ReportGenerationService.java
 │  ├─ UserService.java
-│  ├─ MissionService.java
 │  └─ AnalyticsService.java
 │
 ├─ repository/
@@ -1225,9 +1120,7 @@ src/main/java/com/phishing_defense/
 │  ├─ ScenarioRecordRepository.java
 │  ├─ ChatHistoryRepository.java
 │  ├─ EvidenceRepository.java
-│  ├─ AchievementRepository.java
-│  ├─ MissionRepository.java
-│  └─ AttendanceRepository.java
+│  └─ AchievementRepository.java
 │
 ├─ entity/
 │  ├─ User.java
@@ -1238,10 +1131,7 @@ src/main/java/com/phishing_defense/
 │  ├─ ChatHistory.java
 │  ├─ Evidence.java
 │  ├─ Achievement.java
-│  ├─ UserAchievement.java
-│  ├─ DailyMission.java
-│  ├─ Attendance.java
-│  └─ PhishingIndex.java
+│  └─ UserAchievement.java
 │
 ├─ dto/
 │  ├─ auth/
