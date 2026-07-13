@@ -237,7 +237,10 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             if (_canProceed)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
                 child: GestureDetector(
                   onTap: _proceedToJudge,
                   child: Container(
@@ -549,9 +552,9 @@ class _InputBar extends StatelessWidget {
                 onSubmitted: (_) => onSend(),
                 decoration: InputDecoration(
                   hintText: '메시지를 입력하세요...',
-                  hintStyle: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+                  hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                   filled: true,
                   fillColor: AppColors.background,
                   border: OutlineInputBorder(
@@ -585,7 +588,9 @@ class _InputBar extends StatelessWidget {
                 ),
                 child: Icon(
                   Icons.send_rounded,
-                  color: enabled ? AppColors.background : AppColors.textSecondary,
+                  color: enabled
+                      ? AppColors.background
+                      : AppColors.textSecondary,
                   size: 20,
                 ),
               ),

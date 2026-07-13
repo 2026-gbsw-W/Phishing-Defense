@@ -7,20 +7,39 @@ class AiTurnResult {
   final bool consumedScript;
 }
 
-const _angryKeywords = ['뭐래', '장난하지', '미쳤', '짜증', '어이없', '그만해', '헛소리'];
+// 공백 유무로 같은 표현을 놓치지 않도록, 키워드와 사용자 입력 모두 공백을
+// 제거한 뒤 비교한다 (예: "안돼"와 "안 돼"를 하나의 항목으로 처리).
+const _angryKeywords = [
+  '뭐래',
+  '장난하지',
+  '장난해',
+  '미쳤',
+  '짜증',
+  '어이없',
+  '그만해',
+  '헛소리',
+  '역겹',
+  '뭔소리',
+  '아진짜',
+  '진짜짜증',
+  '어디서',
+];
 
 const _refusalKeywords = [
   '안돼',
-  '안 돼',
   '싫어',
+  '싫다',
   '못해',
-  '못 해',
   '안할래',
-  '안 할래',
+  '안할게',
   '거절',
   '안보내',
-  '안 보내',
-  '싫다',
+  '안보낼래',
+  '필요없어',
+  '됐어',
+  '됐고',
+  '거부할래',
+  '안해줄래',
 ];
 
 const _suspicionKeywords = [
@@ -33,34 +52,49 @@ const _suspicionKeywords = [
   '경찰',
   '가짜',
   '거짓말',
+  '이상해',
+  '이상한데',
+  '미심쩍',
+  '냄새나',
+  '전형적인',
+  '수법이네',
 ];
 
 const _verifyKeywords = [
-  '직접 확인',
-  '공식 앱',
-  '공식 번호',
-  '공식 홈페이지',
-  '다시 걸어',
-  '검색해서',
+  '직접확인',
+  '공식앱',
+  '공식번호',
+  '공식홈페이지',
+  '대표번호',
+  '다시걸어',
+  '검색해',
   '114',
   '전화해볼게',
   '알아볼게',
   '찾아볼게',
+  '물어볼게',
+  '확인해보고',
+  '확인후',
+  '조회해볼게',
 ];
 
-bool _matchesAny(String text, List<String> keywords) {
-  return keywords.any((keyword) => text.contains(keyword));
+String _normalize(String text) => text.replaceAll(RegExp(r'\s+'), '');
+
+bool _matchesAny(String normalizedText, List<String> keywords) {
+  return keywords.any((keyword) => normalizedText.contains(keyword));
 }
 
 /// 사용자가 채팅창에 자유롭게 입력한 메시지를 규칙 기반으로 분류한다.
 ///
 /// LLM이 없는 상태에서 최대한 다양한 반응을 끌어내기 위한 절충안 — 우선순위:
 /// 화남 > 거절 > 의심 > 직접 확인 시도 > (기본) 순응.
+/// 공백은 분류 전에 제거해 "안돼"/"안 돼"처럼 띄어쓰기만 다른 표현도 함께 잡는다.
 ChatBranch classifyUserMessage(String text) {
-  if (_matchesAny(text, _angryKeywords)) return ChatBranch.angry;
-  if (_matchesAny(text, _refusalKeywords)) return ChatBranch.refusal;
-  if (_matchesAny(text, _suspicionKeywords)) return ChatBranch.suspicious;
-  if (_matchesAny(text, _verifyKeywords)) return ChatBranch.verify;
+  final normalized = _normalize(text);
+  if (_matchesAny(normalized, _angryKeywords)) return ChatBranch.angry;
+  if (_matchesAny(normalized, _refusalKeywords)) return ChatBranch.refusal;
+  if (_matchesAny(normalized, _suspicionKeywords)) return ChatBranch.suspicious;
+  if (_matchesAny(normalized, _verifyKeywords)) return ChatBranch.verify;
   return ChatBranch.comply;
 }
 
