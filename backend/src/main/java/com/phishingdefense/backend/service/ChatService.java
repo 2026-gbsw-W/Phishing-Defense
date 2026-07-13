@@ -13,6 +13,7 @@ import com.phishingdefense.backend.dto.game.ExtractedEvidenceItem;
 import com.phishingdefense.backend.dto.training.AiChatEndResponse;
 import com.phishingdefense.backend.dto.training.AiChatMessageResponse;
 import com.phishingdefense.backend.dto.training.AiEvidenceResponse;
+import com.phishingdefense.backend.dto.training.AiHintResponse;
 import com.phishingdefense.backend.dto.training.AiReportPayload;
 import com.phishingdefense.backend.dto.training.TrainingResultResponse;
 import com.phishingdefense.backend.dto.training.VoiceChatResult;
@@ -24,6 +25,7 @@ import com.phishingdefense.backend.entity.TrainingEvidence;
 import com.phishingdefense.backend.entity.TrainingResult;
 import com.phishingdefense.backend.entity.TrainingSession;
 import com.phishingdefense.backend.entity.User;
+import com.phishingdefense.backend.exception.AiServerCommunicationException;
 import com.phishingdefense.backend.exception.InsufficientHintsException;
 import com.phishingdefense.backend.exception.ScenarioRecordAccessDeniedException;
 import com.phishingdefense.backend.exception.ScenarioRecordAlreadyCompletedException;
@@ -42,6 +44,7 @@ import com.phishingdefense.backend.repository.UserRepository;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -220,10 +223,28 @@ public class ChatService {
             throw new InsufficientHintsException();
         }
 
+        String hintText = resolveHintText(record, recordId);
+
         user.decrementHints();
         record.useHint();
 
-        return new ChatHintResponse(buildHintText(record, recordId), user.getHints());
+        return new ChatHintResponse(hintText, user.getHints());
+    }
+
+    /**
+     * AI 세션이 있으면 실제 대화 맥락 기반 힌트를 우선 사용하고, 세션이 아직 없거나(채팅을 시작하지 않음)
+     * AI 서버 통신이 실패하면 규칙 기반 힌트({@link #buildHintText})로 대체한다.
+     */
+    private String resolveHintText(ScenarioRecord record, Long recordId) {
+        Optional<TrainingSession> session = trainingSessionRepository.findByRecordId(recordId);
+        if (session.isPresent()) {
+            try {
+                return aiClient.getHint(session.get().getSessionId()).hint();
+            } catch (AiServerCommunicationException e) {
+                // AI 서버 장애 시 규칙 기반 힌트로 대체
+            }
+        }
+        return buildHintText(record, recordId);
     }
 
     /**

@@ -42,6 +42,12 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(HttpStatus.UNAUTHORIZED.value(), "INVALID_CREDENTIALS", e.getMessage()));
     }
 
+    @ExceptionHandler(GoogleLoginFailedException.class)
+    public ResponseEntity<ErrorResponse> handleGoogleLoginFailed(GoogleLoginFailedException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ErrorResponse.of(HttpStatus.UNAUTHORIZED.value(), "GOOGLE_LOGIN_FAILED", e.getMessage()));
+    }
+
     @ExceptionHandler({UserNotFoundException.class, ProfileImageNotFoundException.class,
             ChapterNotFoundException.class, StageNotFoundException.class,
             ScenarioRecordNotFoundException.class, EvidenceNotFoundException.class,
