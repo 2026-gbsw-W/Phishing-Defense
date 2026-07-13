@@ -1,13 +1,31 @@
 from fastapi import FastAPI, HTTPException
+from fastapi import UploadFile, File
+from fastapi.responses import FileResponse
+from domains.voice.stt_service import transcribe_audio
+from domains.voice.tts_service import synthesize_speech
+import shutil
+import os
 from pydantic import BaseModel
 from langchain_ollama import ChatOllama
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from domains.simulation import prompts
 import uuid
 import json
+from urllib.parse import quote
+from fastapi.middleware.cors import CORSMiddleware
+
+
 
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 llm = ChatOllama(
     model="llama3.1:8b",
@@ -118,3 +136,35 @@ def end_chat(req: EndChatRequest):
         )
 
     return result
+
+@app.post("/voice-chat")
+def voice_chat(
+    session_id: str | None = None,
+    scenario_type: str = "prosecutor",
+    audio_file: UploadFile = File(...),
+):
+    temp_input_path = f"temp_{uuid.uuid4()}.mp3"
+    with open(temp_input_path, "wb") as f:
+        shutil.copyfileobj(audio_file.file, f)
+
+    user_text = transcribe_audio(temp_input_path)
+    os.remove(temp_input_path)
+
+    chat_result = chat(ChatRequest(
+        message=user_text,
+        session_id=session_id,
+        scenario_type=scenario_type,
+    ))
+
+    output_path = f"response_{uuid.uuid4()}.mp3"
+    synthesize_speech(chat_result["answer"], output_path)
+
+    return FileResponse(
+            output_path,
+            media_type="audio/mpeg",
+            headers={
+                "X-Session-Id": chat_result["session_id"],
+                "X-User-Text": quote(user_text),
+                "X-AI-Text": quote(chat_result["answer"]),
+            }
+        )
