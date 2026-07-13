@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/scenario.dart';
 import '../../models/scenario_data.dart';
+import '../../services/game_progress.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/scenario_card.dart';
 import '../stage1_sms/sms_screen.dart';
@@ -58,23 +59,33 @@ class ScenarioSelectionScreen extends StatelessWidget {
 class _StatBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _StatItem(label: '레벨', value: 'Lv.1', color: AppColors.amber),
-          Container(width: 1, height: 32, color: AppColors.border),
-          _StatItem(label: '총 XP', value: '0', color: AppColors.safe),
-          Container(width: 1, height: 32, color: AppColors.border),
-          _StatItem(label: '완료', value: '0 / 3', color: AppColors.textSecondary),
-        ],
-      ),
+    return AnimatedBuilder(
+      animation: GameProgress.instance,
+      builder: (context, _) {
+        final progress = GameProgress.instance;
+        return Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _StatItem(label: '레벨', value: 'Lv.${progress.level}', color: AppColors.amber),
+              Container(width: 1, height: 32, color: AppColors.border),
+              _StatItem(label: '총 XP', value: '${progress.totalXp}', color: AppColors.safe),
+              Container(width: 1, height: 32, color: AppColors.border),
+              _StatItem(
+                label: '완료',
+                value: '${progress.completedCount} / ${demoScenarios.length}',
+                color: AppColors.textSecondary,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
