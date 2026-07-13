@@ -122,4 +122,17 @@ public class ScenarioRecord {
     public boolean isOwnedBy(Long userId) {
         return this.userId.equals(userId);
     }
+
+    public boolean isCompleted() {
+        return Boolean.TRUE.equals(this.completed);
+    }
+
+    public int advanceTurn() {
+        this.currentTurn = (this.currentTurn == null ? 0 : this.currentTurn) + 1;
+        return this.currentTurn;
+    }
+
+    public void useHint() {
+        this.hintsUsed = (this.hintsUsed == null ? 0 : this.hintsUsed) + 1;
+    }
 }

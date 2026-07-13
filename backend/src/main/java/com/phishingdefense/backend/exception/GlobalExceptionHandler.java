@@ -53,10 +53,16 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler({MissingCurrentPasswordException.class, InvalidFileException.class,
-            ScenarioRecordNotCompletedException.class})
+            ScenarioRecordNotCompletedException.class, InsufficientHintsException.class})
     public ResponseEntity<ErrorResponse> handleBadRequest(RuntimeException e) {
         return ResponseEntity.badRequest()
                 .body(ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), "INVALID_INPUT", e.getMessage()));
+    }
+
+    @ExceptionHandler(ScenarioRecordAlreadyCompletedException.class)
+    public ResponseEntity<ErrorResponse> handleScenarioAlreadyCompleted(ScenarioRecordAlreadyCompletedException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of(HttpStatus.CONFLICT.value(), "ALREADY_COMPLETED", e.getMessage()));
     }
 
     @ExceptionHandler({ScenarioRecordAccessDeniedException.class, DailyMissionAccessDeniedException.class})
