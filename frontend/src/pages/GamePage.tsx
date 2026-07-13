@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { GameLayout } from '@components/game/GameLayout'
 import { Stage1_SMS } from '@components/game/Stage1_SMS'
 import { Stage2_Chat } from '@components/game/Stage2_Chat'
@@ -10,6 +11,7 @@ import { Stage6_Result } from '@components/game/Stage6_Result'
 import { useScenarioStatus } from '@hooks/useScenario'
 import { chatService } from '@services/chatService'
 import { useGameStore } from '@stores/gameStore'
+import { ApiError } from '@/types/api'
 import type { Stage } from '@/types/game'
 
 /**
@@ -35,11 +37,17 @@ export function GamePage() {
 
   useEffect(() => {
     let cancelled = false
-    chatService.getHistory(recordId).then((history) => {
-      if (cancelled) return
-      const initial = history.find((m) => m.turn === 0)
-      if (initial) setInitialMessage(initial.message)
-    })
+    chatService
+      .getHistory(recordId)
+      .then((history) => {
+        if (cancelled) return
+        const initial = history.find((m) => m.turn === 0)
+        if (initial) setInitialMessage(initial.message)
+      })
+      .catch((err) => {
+        if (cancelled) return
+        toast.error(err instanceof ApiError ? err.message : '메시지를 불러오지 못했습니다.')
+      })
     return () => {
       cancelled = true
     }

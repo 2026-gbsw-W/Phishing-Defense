@@ -34,6 +34,7 @@ export function Stage2_Chat({ recordId, onProceedToJudgment }: Stage2ChatProps) 
     try {
       await send(text)
     } catch (err) {
+      setDraft(text)
       toast.error(err instanceof ApiError ? err.message : '메시지 전송에 실패했습니다.')
     }
   }

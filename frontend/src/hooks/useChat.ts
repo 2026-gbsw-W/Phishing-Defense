@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
+import toast from 'react-hot-toast'
 import { chatService } from '@/services/chatService'
+import { ApiError } from '@/types/api'
 import type { ChatMessage, Stage } from '@/types/game'
 
 export function useChat(recordId: number, stage: Stage) {
@@ -7,7 +9,12 @@ export function useChat(recordId: number, stage: Stage) {
   const [isSending, setIsSending] = useState(false)
 
   useEffect(() => {
-    chatService.getHistory(recordId).then(setMessages)
+    chatService
+      .getHistory(recordId)
+      .then(setMessages)
+      .catch((err) => {
+        toast.error(err instanceof ApiError ? err.message : '대화 기록을 불러오지 못했습니다.')
+      })
   }, [recordId])
 
   const send = useCallback(

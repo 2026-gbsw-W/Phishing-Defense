@@ -38,6 +38,7 @@ export function Stage5_Report({ recordId, onComplete }: Stage5ReportProps) {
       await send(text)
       setHasSent(true)
     } catch (err) {
+      setDraft(text)
       toast.error(err instanceof ApiError ? err.message : '메시지 전송에 실패했습니다.')
     }
   }
