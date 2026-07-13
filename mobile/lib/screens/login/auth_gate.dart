@@ -15,10 +15,21 @@ class AuthGate extends StatelessWidget {
       future: SessionStore.load(),
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Scaffold(
+          return Scaffold(
             backgroundColor: AppColors.background,
             body: Center(
-              child: CircularProgressIndicator(color: AppColors.alarm),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset(
+                    'assets/images/logo_dark.png',
+                    width: 120,
+                    height: 120,
+                  ),
+                  const SizedBox(height: 32),
+                  const CircularProgressIndicator(color: AppColors.alarm),
+                ],
+              ),
             ),
           );
         }

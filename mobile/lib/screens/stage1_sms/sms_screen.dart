@@ -5,6 +5,7 @@ import '../../models/game/stage.dart';
 import '../../services/game_api.dart';
 import '../../theme/app_colors.dart';
 import '../stage2_chat/chat_screen.dart';
+import '../voice_call/voice_call_screen.dart';
 
 class SmsScreen extends StatefulWidget {
   const SmsScreen({super.key, required this.stage});
@@ -90,6 +91,32 @@ class _SmsScreenState extends State<SmsScreen>
     }
   }
 
+  Future<void> _proceedToVoiceCall() async {
+    _tts.stop();
+    setState(() {
+      _starting = true;
+      _errorText = null;
+    });
+
+    try {
+      final start = await GameApi.startScenario(widget.stage.stageId);
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => VoiceCallScreen(
+            stage: widget.stage,
+            recordId: start.recordId,
+          ),
+        ),
+      );
+    } catch (e) {
+      setState(() => _errorText = e.toString());
+    } finally {
+      if (mounted) setState(() => _starting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -145,6 +172,7 @@ class _SmsScreenState extends State<SmsScreen>
               ],
               _SuspicionBanner(),
               const SizedBox(height: 16),
+              // 훈련 모드 선택
               Row(
                 children: [
                   Expanded(
@@ -158,24 +186,46 @@ class _SmsScreenState extends State<SmsScreen>
                       child: const Text('뒤로'),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     flex: 2,
-                    child: ScaleTransition(
-                      scale: _pulseAnimation,
-                      child: ElevatedButton(
-                        onPressed: _starting ? null : _proceedToChat,
-                        child: _starting
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: AppColors.onAlarm,
-                                ),
-                              )
-                            : const Text('훈련 시작하기 →'),
-                      ),
+                    child: Column(
+                      children: [
+                        ScaleTransition(
+                          scale: _pulseAnimation,
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _starting ? null : _proceedToChat,
+                              icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
+                              label: _starting
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.onAlarm,
+                                      ),
+                                    )
+                                  : const Text('채팅으로 훈련'),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: _starting ? null : _proceedToVoiceCall,
+                            icon: const Icon(Icons.mic_rounded, size: 16),
+                            label: const Text('음성 통화로 훈련'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.amber,
+                              side: BorderSide(color: AppColors.amber.withValues(alpha: 0.5)),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
