@@ -1,46 +1,65 @@
 package com.phishingdefense.backend.service;
 
+import com.phishingdefense.backend.client.AiClient;
+import com.phishingdefense.backend.client.AiScenarioTypeMapper;
+import com.phishingdefense.backend.dto.game.ChatEvidenceItemResponse;
+import com.phishingdefense.backend.dto.game.ChatEvidenceResponse;
 import com.phishingdefense.backend.dto.game.ChatHintResponse;
 import com.phishingdefense.backend.dto.game.ChatHistoryEntryResponse;
 import com.phishingdefense.backend.dto.game.ChatSendRequest;
 import com.phishingdefense.backend.dto.game.ChatSendResponse;
+import com.phishingdefense.backend.dto.game.ChatVoiceResponse;
 import com.phishingdefense.backend.dto.game.ExtractedEvidenceItem;
+import com.phishingdefense.backend.dto.training.AiChatEndResponse;
+import com.phishingdefense.backend.dto.training.AiChatMessageResponse;
+import com.phishingdefense.backend.dto.training.AiEvidenceResponse;
+import com.phishingdefense.backend.dto.training.AiReportPayload;
+import com.phishingdefense.backend.dto.training.TrainingResultResponse;
+import com.phishingdefense.backend.dto.training.VoiceChatResult;
 import com.phishingdefense.backend.entity.ChatHistory;
 import com.phishingdefense.backend.entity.Evidence;
 import com.phishingdefense.backend.entity.ScenarioRecord;
 import com.phishingdefense.backend.entity.Stage;
+import com.phishingdefense.backend.entity.TrainingEvidence;
+import com.phishingdefense.backend.entity.TrainingResult;
+import com.phishingdefense.backend.entity.TrainingSession;
 import com.phishingdefense.backend.entity.User;
 import com.phishingdefense.backend.exception.InsufficientHintsException;
 import com.phishingdefense.backend.exception.ScenarioRecordAccessDeniedException;
 import com.phishingdefense.backend.exception.ScenarioRecordAlreadyCompletedException;
 import com.phishingdefense.backend.exception.ScenarioRecordNotFoundException;
 import com.phishingdefense.backend.exception.StageNotFoundException;
+import com.phishingdefense.backend.exception.TrainingSessionNotFoundException;
 import com.phishingdefense.backend.exception.UserNotFoundException;
 import com.phishingdefense.backend.repository.ChatHistoryRepository;
 import com.phishingdefense.backend.repository.EvidenceRepository;
 import com.phishingdefense.backend.repository.ScenarioRecordRepository;
 import com.phishingdefense.backend.repository.StageRepository;
+import com.phishingdefense.backend.repository.TrainingEvidenceRepository;
+import com.phishingdefense.backend.repository.TrainingResultRepository;
+import com.phishingdefense.backend.repository.TrainingSessionRepository;
 import com.phishingdefense.backend.repository.UserRepository;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
- * AI 서버 연동 전까지 임시로 사용하는 모의(mock) 채팅 서비스.
- * 실제 AI 응답 생성은 고정된 플레이스홀더 값을 반환하지만, 증거 추출은
- * {@link EvidenceExtractor}를 통해 시나리오의 required_evidence 카탈로그와
- * 키워드를 매칭하는 규칙 기반 방식으로 실제 동작한다.
+ * 실제 AI 서버(/chat, /chat/end)와 연동하는 채팅 서비스.
+ * 스테이지 플레이 1회(ScenarioRecord)당 하나의 AI 훈련 세션(TrainingSession)을 유지한다.
+ * 증거 추출은 {@link EvidenceExtractor}를 통해 AI 응답 텍스트에서 시나리오의
+ * required_evidence 카탈로그와 키워드를 매칭하는 규칙 기반 방식으로 동작한다.
  */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ChatService {
 
-    private static final String MOCK_AI_MODEL = "mock";
-    private static final String MOCK_MODEL_VERSION = "stub-1.0";
-    private static final String MOCK_AI_RESPONSE = "(임시 응답) 메시지를 확인했습니다. 계속 대화를 이어가 주세요.";
+    private static final String AI_MODEL_NAME = "ai-server";
     private static final String FALLBACK_HINT_TEXT = "발신자 정보와 링크의 출처를 다시 한번 확인해보세요.";
 
     private final ScenarioRecordRepository scenarioRecordRepository;
@@ -49,6 +68,10 @@ public class ChatService {
     private final StageRepository stageRepository;
     private final EvidenceRepository evidenceRepository;
     private final EvidenceExtractor evidenceExtractor;
+    private final TrainingSessionRepository trainingSessionRepository;
+    private final TrainingResultRepository trainingResultRepository;
+    private final TrainingEvidenceRepository trainingEvidenceRepository;
+    private final AiClient aiClient;
 
     @Transactional
     public ChatSendResponse sendMessage(Long userId, Long recordId, ChatSendRequest request) {
@@ -57,18 +80,22 @@ public class ChatService {
             throw new ScenarioRecordAlreadyCompletedException(recordId);
         }
 
-        int turn = record.advanceTurn();
+        TrainingSession session = trainingSessionRepository.findByRecordId(recordId)
+                .orElseGet(() -> createTrainingSession(userId, record));
 
+        int turn = record.advanceTurn();
         chatHistoryRepository.save(ChatHistory.userMessage(recordId, turn, request.message()));
+
+        AiChatMessageResponse aiResponse = aiClient.chat(session.getSessionId(), request.message(), session.getScenarioType());
+
         chatHistoryRepository.save(
-                ChatHistory.aiMessage(recordId, turn, MOCK_AI_RESPONSE, MOCK_AI_MODEL, MOCK_MODEL_VERSION));
+                ChatHistory.aiMessage(recordId, turn, aiResponse.answer(), AI_MODEL_NAME, null));
 
         Stage stage = stageRepository.findById(record.getScenarioId())
                 .orElseThrow(() -> new StageNotFoundException(record.getScenarioId()));
-        List<ExtractedEvidenceItem> newlyFound =
-                extractNewEvidence(stage, recordId, turn, MOCK_AI_RESPONSE);
+        List<ExtractedEvidenceItem> newlyFound = extractNewEvidence(stage, recordId, turn, aiResponse.answer());
 
-        return new ChatSendResponse(MOCK_AI_RESPONSE, turn, newlyFound, true);
+        return new ChatSendResponse(aiResponse.answer(), turn, newlyFound, true);
     }
 
     private List<ExtractedEvidenceItem> extractNewEvidence(Stage stage, Long recordId, int turn, String aiText) {
@@ -82,6 +109,94 @@ public class ChatService {
             newlyFound.add(new ExtractedEvidenceItem(entry.type(), entry.value()));
         }
         return newlyFound;
+    }
+
+    @Transactional
+    public ChatVoiceResponse sendVoiceMessage(Long userId, Long recordId, MultipartFile audioFile) {
+        ScenarioRecord record = getOwnedRecordOrThrow(userId, recordId);
+        if (record.isCompleted()) {
+            throw new ScenarioRecordAlreadyCompletedException(recordId);
+        }
+
+        TrainingSession session = trainingSessionRepository.findByRecordId(recordId)
+                .orElseGet(() -> createTrainingSession(userId, record));
+
+        VoiceChatResult result = aiClient.voiceChat(session.getSessionId(), session.getScenarioType(), audioFile);
+
+        int turn = record.advanceTurn();
+        chatHistoryRepository.save(ChatHistory.userMessage(recordId, turn, result.userText()));
+        chatHistoryRepository.save(
+                ChatHistory.aiMessage(recordId, turn, result.aiText(), AI_MODEL_NAME, null));
+
+        return new ChatVoiceResponse(
+                result.userText(),
+                result.aiText(),
+                turn,
+                Base64.getEncoder().encodeToString(result.audioContent()),
+                result.contentType() != null ? result.contentType().toString() : "audio/mpeg"
+        );
+    }
+
+    @Transactional
+    public ChatEvidenceResponse saveEvidence(Long userId, Long recordId, String message) {
+        getOwnedRecordOrThrow(userId, recordId);
+
+        TrainingSession session = trainingSessionRepository.findByRecordId(recordId)
+                .orElseThrow(() -> new TrainingSessionNotFoundException("record:" + recordId));
+
+        AiEvidenceResponse response = aiClient.saveEvidence(session.getSessionId(), message);
+
+        TrainingEvidence evidence = TrainingEvidence.of(
+                response.evidence().evidenceId(),
+                session.getSessionId(),
+                response.evidence().speaker(),
+                response.evidence().message()
+        );
+        trainingEvidenceRepository.save(evidence);
+
+        return new ChatEvidenceResponse(response.message(), ChatEvidenceItemResponse.from(evidence));
+    }
+
+    @Transactional
+    public TrainingResultResponse endTraining(Long userId, Long recordId) {
+        getOwnedRecordOrThrow(userId, recordId);
+
+        TrainingSession session = trainingSessionRepository.findByRecordId(recordId)
+                .orElseThrow(() -> new TrainingSessionNotFoundException("record:" + recordId));
+
+        AiChatEndResponse response = aiClient.endChat(session.getSessionId());
+        AiReportPayload report = response.report();
+
+        TrainingResult result = TrainingResult.record(
+                session.getSessionId(),
+                report.personalInfoRequested(),
+                report.accountNumberRequested(),
+                report.moneyRequested(),
+                report.urgencyCreated(),
+                report.authorityImpersonation(),
+                report.suspiciousLink(),
+                report.userFellForIt(),
+                report.riskScore(),
+                report.dangerousMessages(),
+                report.evidenceFeedback(),
+                report.goodPoints(),
+                report.mistakes(),
+                report.improvementTips()
+        );
+        trainingResultRepository.save(result);
+
+        return TrainingResultResponse.from(result);
+    }
+
+    private TrainingSession createTrainingSession(Long userId, ScenarioRecord record) {
+        Stage stage = stageRepository.findById(record.getScenarioId())
+                .orElseThrow(() -> new StageNotFoundException(record.getScenarioId()));
+
+        String scenarioType = AiScenarioTypeMapper.map(stage.getPhishingType());
+        String sessionId = UUID.randomUUID().toString();
+
+        return trainingSessionRepository.save(
+                TrainingSession.create(sessionId, userId, record.getRecordId(), scenarioType));
     }
 
     public List<ChatHistoryEntryResponse> getHistory(Long userId, Long recordId) {

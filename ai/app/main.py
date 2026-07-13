@@ -31,9 +31,13 @@ llm = ChatOllama(
     temperature=1.0,
 )
 
-# 세션ID -> 메시지 리스트 (서버 재시작하면 초기화됨, DB 저장은 나중에)
+# 현재는 메모리 저장 방식이며 DB 연동 시 교체 가능
+# session_id -> 대화 기록
+# session_id -> 분석 리포트
+# session_id -> 수집 증거
 session_histories: dict[str, list] = {}
 session_reports: dict[str, dict] = {}
+session_evidences: dict[str, list] = {}
 
 
 
@@ -42,6 +46,11 @@ class ChatRequest(BaseModel):
     message: str
     session_id: str | None = None       # 없으면 새 세션으로 간주
     scenario_type: str = "prosecutor"   # 새 세션일 때만 사용됨
+
+class EvidenceRequest(BaseModel):
+    session_id: str
+    message: str
+    speaker: str = "AI(사기꾼)"
 
 class EndChatRequest(BaseModel):
     session_id: str
@@ -97,6 +106,10 @@ ANALYSIS_PROMPT_TEMPLATE = """
   "suspicious_link": true/false,
   "user_fell_for_it": true/false,
   "risk_score": 0~100 사이 숫자,
+  "dangerous_messages": [
+    "위험 신호로 판단되는 실제 대화 내용"
+  ],
+  "evidence_feedback": "사용자가 저장한 증거에 대한 평가",
   "good_points": "사용자가 잘 대응한 점을 한국어 문장으로",
   "mistakes": "사용자가 취약했던 부분을 한국어 문장으로",
   "improvement_tips": "개선 방법을 한국어 문장으로"
@@ -104,6 +117,9 @@ ANALYSIS_PROMPT_TEMPLATE = """
 
 # 대화 기록
 {conversation}
+
+# 사용자가 수집한 증거
+{evidence}
 """
 
 def format_conversation(history: list) -> str:
@@ -114,6 +130,35 @@ def format_conversation(history: list) -> str:
         role = "사용자" if isinstance(msg, HumanMessage) else "AI(사기꾼)"
         lines.append(f"{role}: {msg.content}")
     return "\n".join(lines)
+
+@app.post("/evidence")
+def save_evidence(req: EvidenceRequest):
+
+    if req.session_id not in session_histories:
+        raise HTTPException(
+            status_code=404,
+            detail="세션을 찾을 수 없습니다."
+        )
+
+    if req.session_id not in session_evidences:
+        session_evidences[req.session_id] = []
+
+
+    evidence = {
+        "evidence_id": str(uuid.uuid4()),
+        "speaker": req.speaker,
+        "message": req.message,
+        "created_at": datetime.now().isoformat()
+    }
+
+
+    session_evidences[req.session_id].append(evidence)
+
+
+    return {
+        "message": "증거가 저장되었습니다.",
+        "evidence": evidence
+    }
 
 @app.post("/chat/end")
 def end_chat(req: EndChatRequest):
@@ -128,8 +173,19 @@ def end_chat(req: EndChatRequest):
 
     conversation_text = format_conversation(history)
 
+    evidence = session_evidences.get(
+    req.session_id,
+    []
+)
+
+    evidence_text = json.dumps(
+        evidence,
+        ensure_ascii=False
+    )
+
     prompt = ANALYSIS_PROMPT_TEMPLATE.format(
-        conversation=conversation_text
+        conversation=conversation_text,
+        evidence=evidence_text
     )
 
     response = llm.invoke(
@@ -163,7 +219,8 @@ def end_chat(req: EndChatRequest):
 
     return {
         "session_id": req.session_id,
-        "report": result
+        "report": result,
+        "evidences": session_evidences.get(req.session_id, [])
     }
 
 @app.get("/report/{session_id}")
@@ -177,7 +234,8 @@ def get_report(session_id: str):
 
     return {
         "session_id": session_id,
-        "report": session_reports[session_id]
+        "report": session_reports[session_id],
+        "evidences": session_evidences.get(session_id, [])
     }
 
 @app.post("/voice-chat")

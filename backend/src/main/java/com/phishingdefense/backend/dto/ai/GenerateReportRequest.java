@@ -1,8 +1,8 @@
 package com.phishingdefense.backend.dto.ai;
 
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 
 public record GenerateReportRequest(
-        @NotNull Long recordId
+        @NotBlank String sessionId
 ) {
 }

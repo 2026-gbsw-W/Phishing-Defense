@@ -1,8 +1,8 @@
 package com.phishingdefense.backend.dto.ai;
 
 public record GenerateScenarioResponse(
-        Long scenarioId,
-        String context,
+        String sessionId,
+        String scenarioType,
         String initialMessage
 ) {
 }
