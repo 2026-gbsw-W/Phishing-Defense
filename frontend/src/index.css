@@ -518,19 +518,92 @@ h2 {
   white-space: nowrap;
 }
 
-/* ---- GameLayout component ---- */
-.game-layout-container {
-  max-width: 448px;
-  margin: 0 auto;
+/* ---- GameLayout component: rendered as a phone mockup, since the whole
+   game is "using your phone" (SMS, chat, calls). ---- */
+.game-layout-page {
   min-height: 100vh;
   display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 16px;
+}
+.game-layout-phone {
+  position: relative;
+  width: min(390px, 92vw);
+  height: min(844px, 88vh);
+  background: linear-gradient(160deg, #2a2530, #0e0b12);
+  border-radius: 48px;
+  padding: 14px;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.06),
+    0 30px 70px rgba(0, 0, 0, 0.65),
+    0 0 90px rgba(255, 69, 63, 0.08);
+}
+.game-layout-phone::before,
+.game-layout-phone::after {
+  content: '';
+  position: absolute;
+  background: #1c1721;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+/* power button */
+.game-layout-phone::before {
+  right: -2px;
+  top: 150px;
+  width: 3px;
+  height: 70px;
+  border-radius: 0 3px 3px 0;
+}
+/* volume buttons */
+.game-layout-phone::after {
+  left: -2px;
+  top: 120px;
+  width: 3px;
+  height: 100px;
+  border-radius: 3px 0 0 3px;
+  box-shadow: 0 130px 0 -30px #1c1721, 0 130px 0 -30px rgba(255, 255, 255, 0.05);
+}
+.game-layout-notch {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 26px;
+  background: #0e0b12;
+  border-radius: 100px;
+  z-index: 2;
+}
+.game-layout-screen {
+  position: relative;
+  height: 100%;
+  display: flex;
   flex-direction: column;
+  background: var(--bg);
+  border-radius: 36px;
+  overflow: hidden;
+}
+.game-layout-statusbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 26px 4px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.game-layout-statusbar-icons {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text);
 }
 .game-layout-header {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px;
+  padding: 10px 16px 14px;
   border-bottom: 1px solid var(--line);
 }
 .game-layout-back-btn {
@@ -542,21 +615,59 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 .game-layout-back-btn:active {
   opacity: 0.7;
 }
 .game-layout-header-content {
   flex: 1;
+  min-width: 0;
 }
 .game-layout-title {
   font-weight: 600;
-  font-size: 15px;
+  font-size: 14px;
   margin-bottom: 8px;
 }
 .game-layout-main {
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   padding: 16px;
+}
+.game-layout-home-indicator {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 5px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.28);
+  z-index: 2;
+}
+@media (max-width: 460px) {
+  .game-layout-page {
+    padding: 0;
+  }
+  .game-layout-phone {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+  .game-layout-phone::before,
+  .game-layout-phone::after,
+  .game-layout-notch {
+    display: none;
+  }
+  .game-layout-screen {
+    border-radius: 0;
+  }
+  .game-layout-statusbar {
+    padding-top: env(safe-area-inset-top, 16px);
+  }
 }
 
 /* ---- Stage1_SMS component ---- */

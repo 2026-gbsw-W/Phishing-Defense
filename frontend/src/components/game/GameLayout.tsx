@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Signal, Wifi, BatteryFull } from 'lucide-react'
 import type { Stage } from '@/types/game'
 import { ProgressBar } from '@components/common/ProgressBar'
 
@@ -21,17 +21,33 @@ interface GameLayoutProps {
 export function GameLayout({ stage, children }: GameLayoutProps) {
   const navigate = useNavigate()
   return (
-    <div className="game-layout-container">
-      <header className="game-layout-header">
-        <button onClick={() => navigate('/')} aria-label="뒤로가기" className="game-layout-back-btn">
-          <ArrowLeft size={20} />
-        </button>
-        <div className="game-layout-header-content">
-          <p className="game-layout-title">Chapter 1 - {STAGE_LABELS[stage]}</p>
-          <ProgressBar ratio={stage / 6} />
+    <div className="game-layout-page">
+      <div className="game-layout-phone">
+        <div className="game-layout-notch" aria-hidden="true" />
+        <div className="game-layout-screen">
+          <div className="game-layout-statusbar mono" aria-hidden="true">
+            <span>9:41</span>
+            <span className="game-layout-statusbar-icons">
+              <Signal size={13} />
+              <Wifi size={13} />
+              <BatteryFull size={15} />
+            </span>
+          </div>
+
+          <header className="game-layout-header">
+            <button onClick={() => navigate('/')} aria-label="뒤로가기" className="game-layout-back-btn">
+              <ArrowLeft size={20} />
+            </button>
+            <div className="game-layout-header-content">
+              <p className="game-layout-title">Chapter 1 - {STAGE_LABELS[stage]}</p>
+              <ProgressBar ratio={stage / 6} />
+            </div>
+          </header>
+
+          <main className="game-layout-main">{children}</main>
         </div>
-      </header>
-      <main className="game-layout-main">{children}</main>
+        <div className="game-layout-home-indicator" aria-hidden="true" />
+      </div>
     </div>
   )
 }
