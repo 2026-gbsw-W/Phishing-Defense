@@ -11,3 +11,4 @@
 | [PACKAGE_CONFIG.md](PACKAGE_CONFIG.md) | 패키지/환경 설정 |
 | [TECH_SUMMARY.md](TECH_SUMMARY.md) | 기술 스택 요약 |
 | [COMPETITIVE_ANALYSIS.md](COMPETITIVE_ANALYSIS.md) | 경쟁사 분석 |
+| [project_phishing_defense.md](project_phishing_defense.md) | 프로젝트 목표, 요구사항, 구현 방향. |
