@@ -32,7 +32,7 @@ app.add_middleware(
 )
 
 llm = ChatOllama(
-    model="llama3.1:8b",
+    model=os.getenv("OLLAMA_MODEL", "llama3.1:8b"),
     temperature=1.0,
     base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
 )

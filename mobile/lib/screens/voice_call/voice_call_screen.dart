@@ -187,7 +187,21 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
 
     _tts = FlutterTts();
     _initTts();
+    _initPlayerAudioContext();
     _fetchInitialGreeting();
+  }
+
+  // 저지연(FAST) 트랙 요청으로 인한 에뮬레이터/일부 기기 음질 깨짐 방지
+  Future<void> _initPlayerAudioContext() async {
+    await _player.setAudioContext(
+      AudioContext(
+        android: const AudioContextAndroid(
+          contentType: AndroidContentType.speech,
+          usageType: AndroidUsageType.voiceCommunication,
+          audioFocus: AndroidAudioFocus.gain,
+        ),
+      ),
+    );
   }
 
   // ── TTS 초기화 ─────────────────────────────────────────────────────────────

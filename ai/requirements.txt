@@ -7,7 +7,7 @@ langchain-core
 langchain-openai
 langchain-ollama
 openai
-elevenlabs
+edge-tts
 python-dotenv
 httpx
 requests

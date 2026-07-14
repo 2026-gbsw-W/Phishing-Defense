@@ -1,27 +1,32 @@
-from elevenlabs.client import ElevenLabs
-from core.config import settings
-
-_client = ElevenLabs(
-    api_key=settings.ELEVENLABS_API_KEY
-)
+import edge_tts
+import asyncio
 
 
 VOICE_MAP = {
-    "prosecutor": {
-        "voice_id": "21m00Tcm4TlvDq8ikWAM",
-        "description": "권위적인 검찰 사칭 목소리"
-    },
-
-    "bank": {
-        "voice_id": "EXAVITQu4vr4xnSDxMaL",
-        "description": "차분한 금융기관 직원 목소리"
-    },
-
-    "family": {
-        "voice_id": "MF3mGyEYCl7XYWbV9V6O",
-        "description": "불안한 가족 사칭 목소리"
-    }
+    "prosecutor": "ko-KR-InJoonNeural",
+    "bank": "ko-KR-SunHiNeural",
+    "family": "ko-KR-SoonBokNeural",
+    "loan": "ko-KR-InJoonNeural"
 }
+
+
+async def generate_voice(
+    text: str,
+    output_path: str,
+    scenario_type: str
+):
+
+    voice = VOICE_MAP.get(
+        scenario_type,
+        VOICE_MAP["prosecutor"]
+    )
+
+    communicate = edge_tts.Communicate(
+        text=text,
+        voice=voice
+    )
+
+    await communicate.save(output_path)
 
 
 def synthesize_speech(
@@ -30,24 +35,14 @@ def synthesize_speech(
     scenario_type: str = "prosecutor"
 ) -> str:
 
-    voice_config = VOICE_MAP.get(
-        scenario_type,
-        VOICE_MAP["prosecutor"]
-    )
-
-    voice_id = voice_config["voice_id"]
-
     try:
-        audio = _client.text_to_speech.convert(
-            voice_id=voice_id,
-            text=text,
-            model_id="eleven_multilingual_v2",
-            output_format="mp3_44100_128"
+        asyncio.run(
+            generate_voice(
+                text,
+                output_path,
+                scenario_type
+            )
         )
-
-        with open(output_path, "wb") as f:
-            for chunk in audio:
-                f.write(chunk)
 
         return output_path
 
