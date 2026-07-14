@@ -274,7 +274,17 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     if (_isMuted || _state != _CallState.userTurn) return;
     await _tts.stop();
     final ok = await _recorder.hasPermission();
-    if (!ok) return;
+    if (!ok) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('마이크 권한이 필요합니다. 설정에서 허용해주세요.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      return;
+    }
     setState(() => _state = _CallState.recording);
     final path =
         '${Directory.systemTemp.path}/user_${DateTime.now().millisecondsSinceEpoch}.wav';
