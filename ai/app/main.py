@@ -341,7 +341,7 @@ async def voice_call(
             code=1008,
             reason="지원하지 않는 시나리오"
         )
-    return
+        return
 
     # 세션 생성
     session_id = str(uuid.uuid4())

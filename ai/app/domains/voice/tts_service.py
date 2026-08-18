@@ -1,6 +1,8 @@
 import edge_tts
 import asyncio
 
+MOCK_TTS = True  # ElevenLabs API 키 발급 전까지 True로 유지, 키 생기면 False로 전환
+
 
 VOICE_MAP = {
     "prosecutor": "ko-KR-InJoonNeural",
